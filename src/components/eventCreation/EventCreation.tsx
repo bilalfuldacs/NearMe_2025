@@ -1,6 +1,6 @@
 import React from 'react';
 import  {InputField}  from '../common/InputeField';
-import { Box, Grid } from '@mui/material';
+import { Box, Grid, Button } from '@mui/material';
 import EventCreationAddress from './EventCreationAddress';
 import EventCreationImages from './EventCreationImages';
 
@@ -8,9 +8,11 @@ interface EventCreationProps {
   eventData: any;
   handleInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onImagesChange: (images: string[]) => void;
+  onSave: () => void;
+  validation?: {[key: string]: string};
 }
 
-const EventCreation: React.FC<EventCreationProps> = ({ eventData, handleInputChange, onImagesChange }) => {
+const EventCreation: React.FC<EventCreationProps> = ({ eventData, handleInputChange, onImagesChange, onSave, validation = {} }) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       <InputField 
@@ -19,7 +21,9 @@ const EventCreation: React.FC<EventCreationProps> = ({ eventData, handleInputCha
         type="text" 
         value={eventData.title} 
         onChange={handleInputChange} 
-        placeholder="e.g., Dinner with Friends" 
+        placeholder="e.g., Dinner with Friends"
+        error={!!validation.title}
+        helperText={validation.title}
       />
       <InputField 
         name="description" 
@@ -27,7 +31,19 @@ const EventCreation: React.FC<EventCreationProps> = ({ eventData, handleInputCha
         type="textarea" 
         value={eventData.description} 
         onChange={handleInputChange} 
-        placeholder="Tell people what your event is about..." 
+        placeholder="Tell people what your event is about..."
+        error={!!validation.description}
+        helperText={validation.description}
+      />
+      <InputField 
+        name="maxAttendance" 
+        label="Max Attendance" 
+        type="number" 
+        value={eventData.maxAttendance} 
+        onChange={handleInputChange} 
+        placeholder="e.g., 5"
+        error={!!validation.maxAttendance}
+        helperText={validation.maxAttendance}
       />
       {/* Date and Time Section - Two Columns */}
       <Grid container spacing={3}>
@@ -39,6 +55,8 @@ const EventCreation: React.FC<EventCreationProps> = ({ eventData, handleInputCha
             value={eventData.startDate} 
             onChange={handleInputChange} 
             placeholder="Select start date"
+            error={!!validation.startDate}
+            helperText={validation.startDate}
           />
         </Grid>
         <Grid size={{ xs: 6 }}>
@@ -49,6 +67,8 @@ const EventCreation: React.FC<EventCreationProps> = ({ eventData, handleInputCha
             value={eventData.endDate} 
             onChange={handleInputChange} 
             placeholder="Select end date"
+            error={!!validation.endDate}
+            helperText={validation.endDate}
           />
         </Grid>
       </Grid>
@@ -62,6 +82,8 @@ const EventCreation: React.FC<EventCreationProps> = ({ eventData, handleInputCha
             value={eventData.startTime} 
             onChange={handleInputChange} 
             placeholder="Select start time"
+            error={!!validation.startTime}
+            helperText={validation.startTime}
           />
         </Grid>
         <Grid size={{ xs: 6 }}>
@@ -72,11 +94,32 @@ const EventCreation: React.FC<EventCreationProps> = ({ eventData, handleInputCha
             value={eventData.endTime} 
             onChange={handleInputChange} 
             placeholder="Select end time"
+            error={!!validation.endTime}
+            helperText={validation.endTime}
           />
         </Grid>
       </Grid>
-      <EventCreationAddress eventData={eventData} handleInputChange={handleInputChange} />
+      <EventCreationAddress eventData={eventData} handleInputChange={handleInputChange} validation={validation} />
       <EventCreationImages images={eventData.images} onImagesChange={onImagesChange} />
+      
+      {/* Save Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <Button
+          variant="contained"
+          size="large"
+          onClick={onSave}
+          sx={{
+            px: 6,
+            py: 2,
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            borderRadius: 2,
+            textTransform: 'none'
+          }}
+        >
+          Save Event
+        </Button>
+      </Box>
     </Box>
   );
 };

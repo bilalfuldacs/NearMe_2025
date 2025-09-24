@@ -2,7 +2,7 @@ import React from 'react'
 import { Box, Typography } from '@mui/material'
 import {InputField} from '../common/InputeField'
 
-const EventCreationAddress = ( {eventData, handleInputChange}: {eventData: any, handleInputChange: any}) => {
+const EventCreationAddress = ( {eventData, handleInputChange, validation = {}}: {eventData: any, handleInputChange: any, validation?: {[key: string]: string}}) => {
     console.log(eventData)
   return (
     <Box sx={{
@@ -32,6 +32,8 @@ const EventCreationAddress = ( {eventData, handleInputChange}: {eventData: any, 
           onChange={handleInputChange} 
           placeholder="Street name and number"
           name="street"
+          error={!!validation.street}
+          helperText={validation.street}
         />
         <InputField 
           label="City" 
@@ -40,6 +42,8 @@ const EventCreationAddress = ( {eventData, handleInputChange}: {eventData: any, 
           onChange={handleInputChange} 
           placeholder="e.g., San Francisco"
           name="city"
+          error={!!validation.city}
+          helperText={validation.city}
         />
         <InputField 
           label="State / Province" 
@@ -48,6 +52,8 @@ const EventCreationAddress = ( {eventData, handleInputChange}: {eventData: any, 
           onChange={handleInputChange} 
           placeholder="e.g., CA"
           name="state"
+          error={!!validation.state}
+          helperText={validation.state}
         />
         <InputField 
           label="Postal Code" 
@@ -56,6 +62,8 @@ const EventCreationAddress = ( {eventData, handleInputChange}: {eventData: any, 
           onChange={handleInputChange} 
           placeholder="e.g., 94102"
           name="zip"
+          error={!!validation.zip}
+          helperText={validation.zip}
         />
       </Box>
     </Box>

@@ -30,8 +30,7 @@ export const SignupForm = () => {
     name: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    contact: ''
+    confirmPassword: ''
   })
   const [validation, setValidation] = useState<Error>({})
   
@@ -44,11 +43,17 @@ export const SignupForm = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
+    console.log('Form submitted with data:', formData)
+    
     const validation = validationFunction(formData)
     setValidation(validation)
+    console.log('Validation result:', validation)
     
     if (Object.keys(validation).length === 0) {
+      console.log('Sending data to backend...')
       await fetchData('http://localhost:8000/api/create/', formData)
+    } else {
+      console.log('Validation failed, not sending data')
     }
   }
 
@@ -181,6 +186,7 @@ export const SignupForm = () => {
                   variant="contained" 
                   size="large"
                   disabled={loading}
+                  onClick={() => console.log('Sign Up button clicked')}
                   sx={{ 
                     mt: 2, 
                     py: 1.5,

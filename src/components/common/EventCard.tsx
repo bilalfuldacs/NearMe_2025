@@ -5,8 +5,23 @@ import CardContent from '@mui/material/CardContent';
 import CardMedia from '@mui/material/CardMedia';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import { Event } from '../../store/eventsSlice';
+import { useNavigate } from 'react-router-dom';
 
-export default function MediaCard({Image}: {Image: string}) {
+interface EventCardProps {
+  Image: string;
+  event?: Event;
+}
+
+export default function MediaCard({Image, event}: EventCardProps) {
+  const navigate = useNavigate();
+
+  const handleViewDetails = () => {
+    if (event) {
+      navigate(`/event/${event.id}`);
+    }
+  };
+
   return (
     <Card sx={{ 
       borderRadius: 3,
@@ -18,7 +33,7 @@ export default function MediaCard({Image}: {Image: string}) {
       <CardMedia
         sx={{ height: 140 }}
         image={Image}
-        title="Event Image"
+        title={event?.title || "Event Image"}
       />
       <CardContent sx={{ flexGrow: 1, pb: 1 }}>
         <Typography 
@@ -31,18 +46,20 @@ export default function MediaCard({Image}: {Image: string}) {
             mb: 1
           }}
         >
-          Dinner at My Place
+          {event?.title || "Event Title"}
         </Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
-          Hosted by Sarah<br/>
-          3 / 3 spots, KFT WF<br/>
-          500 m away
+          Hosted by {event?.organizer_name || "Organizer"}<br/>
+          {event?.max_attendees ? `0 / ${event.max_attendees} spots` : "Limited spots"}, {event?.city || "Location"}<br/>
+          {event?.start_date ? new Date(event.start_date).toLocaleDateString() : "Date TBD"}
         </Typography>
       </CardContent>
       <CardActions sx={{ p: 2, pt: 0 }}>
         <Button 
           variant="contained" 
           fullWidth
+          onClick={handleViewDetails}
+          disabled={!event}
           sx={{
             borderRadius: 5,
             py: 1.5,

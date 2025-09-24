@@ -58,11 +58,14 @@ export const LoginForm = () => {
               throw new Error(`HTTP error! status: ${response.status}`);
           }
           const data = await response.json();
+          console.log('Login API response:', data);
           
           // Call login function after successful API response
           if (data && data.user && login) {
             const user = data.user;
-            login(user.name, user.email, "user");
+            console.log('User data from API:', user);
+            console.log('Setting user with email:', user.email);
+            login(user.name, user.email, "user", user.id);
             // PublicRoute will automatically redirect to home page
           }
           

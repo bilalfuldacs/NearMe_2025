@@ -1,134 +1,280 @@
-import * as React from 'react';
-import { 
-  AppBar, 
-  Box, 
-  Toolbar, 
-  Typography, 
-  Button, 
+import React, { useState, useContext } from 'react';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
   IconButton,
-  Container
+  Menu,
+  MenuItem,
+  Box,
+  Avatar,
+  Divider,
+  ListItemIcon,
+  ListItemText,
+  Badge
 } from '@mui/material';
-import { NotificationsOutlined, PersonOutline } from '@mui/icons-material';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
+import {
+  Home,
+  EventNote,
+  Add,
+  Notifications,
+  Message,
+  AccountCircle,
+  Logout,
+  Person
+} from '@mui/icons-material';
+import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { AuthContext } from '../../auth/authContext';
+import { AppDispatch } from '../../store/store';
+import { setEvents } from '../../store/eventsSlice';
 
-const pages = ['Home', 'My Events', 'Create Event'];
-
-function Navbar() {
+const Navbar: React.FC = () => {
+  const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch<AppDispatch>();
+  const authContext = useContext(AuthContext);
+  const user = authContext?.user;
+  const logout = authContext?.logout;
 
-  const getPagePath = (page: string) => {
-    switch (page) {
-      case 'Home':
-        return '/';
-      case 'My Events':
-        return '/my-events';
-      case 'Create Event':
-        return '/create-event';
-      default:
-        return '/';
-    }
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null);
+
+  const isMenuOpen = Boolean(anchorEl);
+  const isNotificationOpen = Boolean(notificationAnchor);
+
+  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
   };
+
+  const handleNotificationMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setNotificationAnchor(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleNotificationMenuClose = () => {
+    setNotificationAnchor(null);
+  };
+
+  const handleLogout = () => {
+    if (logout) {
+      logout();
+      dispatch(setEvents([]));
+      navigate('/login');
+    }
+    handleMenuClose();
+  };
+
+  const navigationItems = [
+    { label: 'Home', path: '/', icon: <Home /> },
+    { label: 'My Events', path: '/my-events', icon: <EventNote /> },
+    { label: 'Create Event', path: '/create-event', icon: <Add /> },
+    { label: 'Messages', path: '/messages', icon: <Message /> }
+  ];
+
+  const isActive = (path: string) => location.pathname === path;
 
   return (
     <AppBar 
-      position="static" 
-      elevation={1}
-      sx={{ 
-        backgroundColor: 'white', 
-        color: '#333',
-        borderRadius: 0,
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      position="sticky" 
+      elevation={0}
+      sx={{
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #e0e0e0',
+        backdropFilter: 'blur(10px)',
+        zIndex: 1100
       }}
     >
-      <Container maxWidth="lg">
-        <Toolbar 
-          disableGutters 
-          sx={{ 
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            py: 1
+      <Toolbar 
+        sx={{ 
+          maxWidth: '1200px',
+          width: '100%',
+          mx: 'auto',
+          px: { xs: 2, sm: 3 },
+          justifyContent: 'space-between'
+        }}
+      >
+        {/* Logo */}
+        <Typography
+          variant="h5"
+          component={RouterLink}
+          to="/"
+          sx={{
+            fontWeight: 700,
+            color: '#1976d2',
+            textDecoration: 'none',
+            fontSize: { xs: '1.25rem', sm: '1.5rem' },
+            '&:hover': {
+              color: '#1565c0'
+            }
           }}
         >
-          {/* Left Side - Logo and Navigation */}
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            gap: 4
-          }}>
-            {/* Brand Logo */}
-            <Typography
-              variant="h5"
+          NearMe
+        </Typography>
+
+        {/* Navigation Links */}
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>
+          {navigationItems.map((item) => (
+            <Button
+              key={item.path}
               component={RouterLink}
-              to="/"
+              to={item.path}
+              startIcon={item.icon}
               sx={{
-                fontFamily: 'sans-serif',
-                fontWeight: 600,
-                color: '#333',
-                textDecoration: 'none',
-                fontSize: '1.5rem'
-              }}
-            >
-              NearMe
-            </Typography>
-
-            {/* Navigation Links */}
-            <Box sx={{ 
-              display: { xs: 'none', md: 'flex' }, 
-              gap: 2
-            }}>
-              {pages.map((page) => (
-                <Button
-                  key={page}
-                  component={RouterLink}
-                  to={getPagePath(page)}
-                  sx={{ 
-                    color: location.pathname === getPagePath(page) ? '#007bff' : '#333',
-                    textTransform: 'none',
-                    fontSize: '1rem',
-                    fontWeight: location.pathname === getPagePath(page) ? 600 : 400,
-                    '&:hover': {
-                      backgroundColor: 'transparent',
-                      color: '#007bff'
-                    }
-                  }}
-                >
-                  {page}
-                </Button>
-              ))}
-            </Box>
-          </Box>
-
-          {/* Right Side Icons */}
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            gap: 1
-          }}>
-            <IconButton
-              sx={{ 
-                color: '#333',
+                color: isActive(item.path) ? '#1976d2' : '#666',
+                textTransform: 'none',
+                fontWeight: isActive(item.path) ? 600 : 400,
+                px: 2,
+                py: 1,
+                borderRadius: 2,
+                backgroundColor: isActive(item.path) ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
                 '&:hover': {
-                  backgroundColor: 'rgba(0,0,0,0.04)'
-                }
+                  backgroundColor: isActive(item.path) 
+                    ? 'rgba(25, 118, 210, 0.12)' 
+                    : 'rgba(0, 0, 0, 0.04)',
+                  color: '#1976d2'
+                },
+                transition: 'all 0.2s ease-in-out'
               }}
             >
-              <NotificationsOutlined />
-            </IconButton>
-            
-            <IconButton
-              sx={{ 
-                color: '#333',
-                '&:hover': {
-                  backgroundColor: 'rgba(0,0,0,0.04)'
-                }
+              {item.label}
+            </Button>
+          ))}
+        </Box>
+
+        {/* Right Side Actions */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Notifications */}
+          <IconButton
+            onClick={handleNotificationMenuOpen}
+            sx={{
+              color: '#666',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)'
+              }
+            }}
+          >
+            <Badge badgeContent={0} color="error">
+              <Notifications />
+            </Badge>
+          </IconButton>
+
+          {/* Profile Menu */}
+          <IconButton
+            onClick={handleProfileMenuOpen}
+            sx={{
+              p: 0.5,
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)'
+              }
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 32,
+                height: 32,
+                backgroundColor: '#1976d2',
+                fontSize: '0.875rem'
               }}
             >
-              <PersonOutline />
-            </IconButton>
-          </Box>
-        </Toolbar>
-      </Container>
-    </AppBar>
+              {user?.username?.charAt(0).toUpperCase() || 'U'}
+            </Avatar>
+          </IconButton>
+
+          {/* Profile Dropdown Menu */}
+          <Menu
+            anchorEl={anchorEl}
+            open={isMenuOpen}
+            onClose={handleMenuClose}
+            PaperProps={{
+              elevation: 3,
+              sx: {
+                mt: 1.5,
+                minWidth: 200,
+                borderRadius: 2,
+                border: '1px solid #e0e0e0',
+                '& .MuiMenuItem-root': {
+                  px: 2,
+                  py: 1.5,
+                  borderRadius: 1
+                }
+              }
+            }}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          >
+            <MenuItem disabled>
+              <ListItemIcon>
+                <Person fontSize="small" />
+              </ListItemIcon>
+              <ListItemText 
+                primary={user?.username || 'User'}
+                secondary={user?.email}
+                primaryTypographyProps={{
+                  fontSize: '0.875rem',
+                  fontWeight: 500
+                }}
+                secondaryTypographyProps={{
+                  fontSize: '0.75rem',
+                  color: '#666'
+                }}
+              />
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={handleLogout}>
+              <ListItemIcon>
+                <Logout fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Logout</ListItemText>
+            </MenuItem>
+          </Menu>
+
+          {/* Notifications Dropdown Menu */}
+          <Menu
+            anchorEl={notificationAnchor}
+            open={isNotificationOpen}
+            onClose={handleNotificationMenuClose}
+            PaperProps={{
+              elevation: 3,
+              sx: {
+                mt: 1.5,
+                minWidth: 280,
+                borderRadius: 2,
+                border: '1px solid #e0e0e0'
+              }
+            }}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          >
+            <MenuItem disabled>
+              <ListItemText 
+                primary="Notifications"
+                primaryTypographyProps={{
+                  fontSize: '0.875rem',
+                  fontWeight: 600
+                }}
+              />
+            </MenuItem>
+            <Divider />
+            <MenuItem disabled>
+              <ListItemText 
+                primary="No new notifications"
+                primaryTypographyProps={{
+                  fontSize: '0.75rem',
+                  color: '#666',
+                  textAlign: 'center'
+                }}
+              />
+            </MenuItem>
+          </Menu>
+        </Box>
+    </Toolbar>
+</AppBar>
   );
-}
+};
+
 export default Navbar;

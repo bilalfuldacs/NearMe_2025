@@ -6,66 +6,121 @@ interface Error {
 interface Data {
     [key: string]: string
 }
-export const validationFunction = (data: Data) => {
-   let error: Error = {}
-   function validateName(name: string) {
-    if (!name) {
-        error.name = 'Name is required'
+// Reusable validation functions
+const required = (value: string, fieldName: string): string => {
+    if (!value) {
+        return `${fieldName} is required`
     }
-   }
-    function validateEmail(email: string) {
-        if (!email) {
-            error.email = 'Email is required'
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            error.email = 'Please enter a valid email address'
-        }
+    return ''
+}
+
+const email = (value: string): string => {
+    if (!value) {
+        return 'Email is required'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        return 'Please enter a valid email address'
     }
-   function validatePassword(password: string) {
-    if (!password) {
-        error.password = 'Password is required'
-    }
-   }
-   function validateConfirmPassword(confirmPassword: string) {
+    return ''
+}
+
+const passwordMatch = (password: string, confirmPassword: string): string => {
     if (!confirmPassword) {
-        error.confirmPassword = 'Confirm Password is required'
+        return 'Confirm Password is required'
     }
-    if (confirmPassword !== data.password) {
-        error.confirmPassword = 'Passwords do not match'
+    if (confirmPassword !== password) {
+        return 'Passwords do not match'
     }
-   }
-   function validateContact(contact: string) {
-    if (!contact) {
-        error.contact = 'Contact is required'
-    }
-   }
-validateName(data.name)
-validateEmail(data.email)
-validatePassword(data.password)
-validateConfirmPassword(data.confirmPassword)
-validateContact(data.contact)
-return error
+    return ''
+}
+
+export const validationFunction = (data: Data) => {
+    console.log(data)
+    let error: Error = {}
+    
+    error.name = required(data.name, 'Name')
+    error.email = email(data.email)
+    error.password = required(data.password, 'Password')
+    error.confirmPassword = passwordMatch(data.password, data.confirmPassword)
+    
+    // Remove empty error messages
+    Object.keys(error).forEach(key => {
+        if (!error[key]) {
+            delete error[key]
+        }
+    })
+    
+    return error
 }
 
 // Login validation function
 export const loginValidationFunction = (data: { email: string; password: string }) => {
-   let error: Error = {}
-   
-   function validateEmail(email: string) {
-        if (!email) {
-            error.email = 'Email is required'
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            error.email = 'Please enter a valid email address'
+    let error: Error = {}
+    
+    error.email = email(data.email)
+    error.password = required(data.password, 'Password')
+    
+    // Remove empty error messages
+    Object.keys(error).forEach(key => {
+        if (!error[key]) {
+            delete error[key]
         }
+    })
+    
+    return error
+}
+
+// Additional validation functions
+const number = (value: string, fieldName: string): string => {
+    if (!value) {
+        return `${fieldName} is required`
+    } else if (isNaN(Number(value)) || Number(value) <= 0) {
+        return `Please enter a valid number greater than 0`
+    }
+    return ''
+}
+
+const dateRange = (startDate: string, endDate: string): string => {
+    if (!startDate || !endDate) {
+        return '' // Let required validation handle empty dates
     }
     
-   function validatePassword(password: string) {
-    if (!password) {
-        error.password = 'Password is required'
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    
+    if (start > end) {
+        return 'Start date must be before end date'
     }
-   }
-   
-   validateEmail(data.email)
-   validatePassword(data.password)
-   
-   return error
+    return ''
+}
+
+// Event creation validation function
+export const eventValidationFunction = (data: Data) => {
+    let error: Error = {}
+    
+    error.title = required(data.title, 'Event title')
+    error.description = required(data.description, 'Event description')
+    error.maxAttendance = number(data.maxAttendance, 'Max attendance')
+    error.startDate = required(data.startDate, 'Start date')
+    error.endDate = required(data.endDate, 'End date')
+    error.startTime = required(data.startTime, 'Start time')
+    error.endTime = required(data.endTime, 'End time')
+    error.street = required(data.street, 'Street address')
+    error.city = required(data.city, 'City')
+    error.state = required(data.state, 'State/Province')
+    error.zip = required(data.zip, 'Postal code')
+    
+    // Date range validation
+    const dateRangeError = dateRange(data.startDate, data.endDate)
+    if (dateRangeError) {
+        error.endDate = dateRangeError // Show error on end date field
+    }
+    
+    // Remove empty error messages
+    Object.keys(error).forEach(key => {
+        if (!error[key]) {
+            delete error[key]
+        }
+    })
+    
+    return error
 }

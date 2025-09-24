@@ -2,6 +2,7 @@
 import React, { createContext, useReducer, useEffect, ReactNode } from "react";
 
 interface User {
+  id?: number;
   username: string;
   email: string;
   role: string;
@@ -20,7 +21,7 @@ interface AuthAction {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (username: string, email: string, role?: string) => void;
+  login: (username: string, email: string, role?: string, id?: number) => void;
   logout: () => void;
 }
 
@@ -60,9 +61,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const login = (username: string, email: string, role: string = "user") => {
-    const newUser: User = { username, email, role };
-    console.log(newUser);
+  const login = (username: string, email: string, role: string = "user", id?: number) => {
+    const newUser: User = { id, username, email, role };
+    console.log('AuthContext: Creating new user object:', newUser);
+    console.log('AuthContext: Storing in localStorage:', newUser);
     localStorage.setItem("user", JSON.stringify(newUser));
     dispatch({ type: "LOGIN", payload: newUser });
   };
