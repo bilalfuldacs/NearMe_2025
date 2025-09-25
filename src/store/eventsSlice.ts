@@ -14,6 +14,7 @@ export interface Event {
   state: string;
   organizer_name: string;
   organizer_email: string;
+  organizer_id?: number;
   username: string;
   email: string;
   is_active: boolean;
@@ -79,3 +80,4 @@ export const {
 
 // Export reducer
 export default eventsSlice.reducer;
+

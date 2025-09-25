@@ -11,6 +11,7 @@ import {
   Paper,
   CircularProgress
 } from '@mui/material';
+import { People } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
 import { Event } from '../store/eventsSlice';
@@ -36,6 +37,31 @@ const EventDetailsPage: React.FC = () => {
   const [message, setMessage] = useState('');
   const [existingConversation, setExistingConversation] = useState<any>(null);
   const [chatHistory, setChatHistory] = useState<any[]>([]);
+  const [remainingSpots, setRemainingSpots] = useState<number | null>(null);
+
+  // Fetch remaining spots for this event
+  const fetchRemainingSpots = async () => {
+    if (!event?.id) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8000/api/conversations/event/${event.id}/`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Count confirmed attendees
+          const confirmedCount = data.conversations.filter((conv: any) => conv.status === 'confirmed').length;
+          const remaining = event.max_attendees - confirmedCount;
+          setRemainingSpots(Math.max(0, remaining));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching remaining spots:', error);
+    }
+  };
 
   useEffect(() => {
     if (eventId && events.length > 0) {
@@ -46,6 +72,13 @@ const EventDetailsPage: React.FC = () => {
       setLoading(false);
     }
   }, [eventId, events]);
+
+  // Fetch remaining spots when event changes
+  useEffect(() => {
+    if (event?.id) {
+      fetchRemainingSpots();
+    }
+  }, [event?.id]);
 
   const isOrganizer = Boolean(event && user && event.organizer_email === user.email);
 
@@ -441,6 +474,7 @@ const EventDetailsPage: React.FC = () => {
           <EventHeader
             event={event}
             isOrganizer={isOrganizer}
+            remainingSpots={remainingSpots}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onSendRequest={handleSendRequest}

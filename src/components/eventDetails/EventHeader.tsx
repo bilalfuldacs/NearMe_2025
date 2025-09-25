@@ -10,13 +10,15 @@ import {
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Send as SendIcon
+  Send as SendIcon,
+  Block as BlockIcon
 } from '@mui/icons-material';
 import { Event } from '../../store/eventsSlice';
 
 interface EventHeaderProps {
   event: Event;
   isOrganizer: boolean;
+  remainingSpots: number | null;
   onEdit: () => void;
   onDelete: () => void;
   onSendRequest: () => void;
@@ -25,6 +27,7 @@ interface EventHeaderProps {
 const EventHeader: React.FC<EventHeaderProps> = ({
   event,
   isOrganizer,
+  remainingSpots,
   onEdit,
   onDelete,
   onSendRequest
@@ -92,17 +95,41 @@ const EventHeader: React.FC<EventHeaderProps> = ({
             </Button>
           </>
         ) : (
-          <Button
-            variant="contained"
-            startIcon={<SendIcon />}
-            onClick={onSendRequest}
-            sx={{ 
-              borderRadius: 2,
-              minWidth: '150px'
-            }}
-          >
-            Send Request
-          </Button>
+          remainingSpots === 0 ? (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 2,
+                py: 1,
+                backgroundColor: 'error.light',
+                color: 'error.contrastText',
+                borderRadius: 2,
+                minWidth: '150px',
+                justifyContent: 'center',
+                border: '1px solid',
+                borderColor: 'error.main'
+              }}
+            >
+              <BlockIcon sx={{ fontSize: 20 }} />
+              <Typography variant="button" sx={{ fontWeight: 'bold' }}>
+                Capacity Full
+              </Typography>
+            </Box>
+          ) : (
+            <Button
+              variant="contained"
+              startIcon={<SendIcon />}
+              onClick={onSendRequest}
+              sx={{ 
+                borderRadius: 2,
+                minWidth: '150px'
+              }}
+            >
+              Send Request
+            </Button>
+          )
         )}
       </Box>
     </Box>

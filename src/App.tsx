@@ -6,6 +6,7 @@ import { CssBaseline } from '@mui/material';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 import Layout from './components/layout/Layout';
+import Navbars from './components/navbar/Navbar';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -16,6 +17,7 @@ import EventCreationPage from './pages/EventCreationPage';
 import EventDetailsPage from './pages/EventDetailsPage';
 import EventRequestPage from './pages/EventRequestPage';
 import MessagesPage from './pages/MessagesPage';
+import ManageAttendeesPage from './pages/ManageAttendeesPage';
 
 const theme = createTheme({
   palette: {
@@ -67,20 +69,31 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route 
-                path="/messages" 
+              <Route
+                path="/messages"
                 element={
                   <ProtectedRoute>
                     <Layout>
                       <MessagesPage />
                     </Layout>
                   </ProtectedRoute>
-                } 
+                }
+              />
+              <Route
+                path="/event/:eventId/manage-attendees"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ManageAttendeesPage />
+                    </Layout>
+                  </ProtectedRoute>
+                }
               />
               <Route 
                 path="/event/:eventId" 
                 element={
                   <ProtectedRoute>
+                    <Navbars />
                     <EventDetailsPage />
                   </ProtectedRoute>
                 } 

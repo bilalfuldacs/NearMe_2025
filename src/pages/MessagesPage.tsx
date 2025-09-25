@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -34,6 +35,7 @@ interface Conversation {
   host_name: string;
   created_at: string;
   updated_at: string;
+  status?: string; // "pending", "confirmed", "rejected"
   last_message?: {
     id: number;
     text: string;
@@ -139,12 +141,28 @@ const MessagesList: React.FC<{
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                           {conversation.last_message?.text || 'No messages yet'}
                         </Typography>
-                        <Chip 
-                          label={conversation.event_title} 
-                          size="small" 
-                          variant="outlined" 
-                          sx={{ fontSize: '0.7rem', height: 20 }} 
-                        />
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <Chip 
+                            label={conversation.event_title} 
+                            size="small" 
+                            variant="outlined" 
+                            sx={{ fontSize: '0.7rem', height: 20 }} 
+                          />
+                          <Chip 
+                            label={conversation.status || 'pending'}
+                            size="small" 
+                            color={
+                              conversation.status === 'confirmed' ? 'success' :
+                              conversation.status === 'rejected' ? 'error' : 'default'
+                            }
+                            variant="filled"
+                            sx={{ 
+                              fontSize: '0.65rem', 
+                              height: 18,
+                              fontWeight: 'bold'
+                            }} 
+                          />
+                        </Box>
                       </Box>
                     }
                   />
@@ -309,6 +327,9 @@ const ChatScreen: React.FC<{
       const result = await response.json();
       console.log('Participation confirmed:', result);
 
+      // Update local conversation status
+      selectedConversation.status = 'confirmed';
+
       // Add a system message about participation confirmation
       const systemMessage = `${user?.username} confirmed participation for this event.`;
       
@@ -372,6 +393,9 @@ const ChatScreen: React.FC<{
 
       const result = await response.json();
       console.log('Participation rejected:', result);
+
+      // Update local conversation status
+      selectedConversation.status = 'rejected';
 
       // Add a system message about participation rejection
       const systemMessage = `${user?.username} rejected participation for this event.`;
@@ -438,7 +462,22 @@ const ChatScreen: React.FC<{
             {selectedConversation.event_title}
           </Typography>
         </Box>
-        <Chip label="Event Request" size="small" color="primary" variant="outlined" sx={{ fontSize: '0.7rem' }} />
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Chip label="Event Request" size="small" color="primary" variant="outlined" sx={{ fontSize: '0.7rem' }} />
+          <Chip 
+            label={`Status: ${selectedConversation.status || 'pending'}`}
+            size="small" 
+            color={
+              selectedConversation.status === 'confirmed' ? 'success' :
+              selectedConversation.status === 'rejected' ? 'error' : 'default'
+            }
+            variant="filled"
+            sx={{ 
+              fontSize: '0.7rem',
+              fontWeight: 'bold'
+            }} 
+          />
+        </Box>
       </Box>
 
       {/* Participation Action Buttons - Only for Host */}
@@ -575,6 +614,7 @@ const MessagesPage: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -587,6 +627,17 @@ const MessagesPage: React.FC = () => {
       fetchConversations();
     }
   }, [user?.id]);
+
+  // Auto-select conversation from URL parameter
+  useEffect(() => {
+    const conversationId = searchParams.get('conversation');
+    if (conversationId && conversations.length > 0) {
+      const conversation = conversations.find(conv => conv.id.toString() === conversationId);
+      if (conversation) {
+        setSelectedConversation(conversation);
+      }
+    }
+  }, [conversations, searchParams]);
 
   const fetchConversations = async () => {
     try {
