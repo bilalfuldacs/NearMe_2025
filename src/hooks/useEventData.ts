@@ -50,8 +50,38 @@ export const useEventData = ({ eventId, isEditMode, userEmail, onUnauthorized }:
         fetchEventData();
     }, [fetchEventData]);
 
-    const transformEventToFormData = useCallback((event: Event): EventFormData => {
+    const transformEventToFormData = useCallback(async (event: Event): Promise<EventFormData> => {
+        /**
+         * Convert image URL to base64 string
+         * Used when editing events to convert existing image URLs to base64
+         */
+        const convertUrlToBase64 = async (url: string): Promise<string> => {
+            // Check if already base64
+            if (url.startsWith('data:')) {
+                return url;
+            }
+
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                console.error('Failed to convert URL to base64:', url, error);
+                return url; // Fallback to URL if conversion fails
+            }
+        };
+
+        // Convert all image URLs to base64
         const imageUrls = event.all_images?.map(img => img.url) || [];
+        const base64Images = await Promise.all(
+            imageUrls.map(url => convertUrlToBase64(url))
+        );
         
         return {
             title: event.title || '',
@@ -65,7 +95,7 @@ export const useEventData = ({ eventId, isEditMode, userEmail, onUnauthorized }:
             city: event.city || '',
             state: event.state || '',
             zip: event.postal_code || '',
-            images: imageUrls,
+            images: base64Images,
         };
     }, []);
 

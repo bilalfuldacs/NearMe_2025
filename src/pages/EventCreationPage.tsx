@@ -77,8 +77,12 @@ const EventCreationPage: React.FC<EventCreationPageProps> = ({ mode = 'create' }
     // Populate form with event data when editing
     useEffect(() => {
         if (event && isEditMode) {
-            const formData = transformEventToFormData(event);
-            setFormData(formData);
+            // Transform is now async, so we need to handle the promise
+            transformEventToFormData(event).then(formData => {
+                setFormData(formData);
+            }).catch(err => {
+                console.error('Failed to transform event data:', err);
+            });
         }
     }, [event, isEditMode, transformEventToFormData, setFormData]);
 
