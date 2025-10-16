@@ -93,8 +93,10 @@ export interface ConversationListItem {
     sender_name: string;
     sender_id: number;
     created_at: string;
+    is_read: boolean;
   };
   message_count: number;
+  unread_count: number;
 }
 
 export interface ConversationsListResponse {
@@ -319,6 +321,26 @@ class ConversationsService {
     } catch (error: any) {
       console.error('ConversationsService: Failed to update conversation status:', error);
       throw new Error(error.response?.data?.message || 'Failed to update conversation status');
+    }
+  }
+
+  /**
+   * Mark all messages in a conversation as read
+   * POST /api/messages/mark-read/
+   */
+  async markMessagesAsRead(conversationId: number): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await apiClient.post('/messages/mark-read/', {
+        conversation_id: conversationId
+      });
+      
+      return {
+        success: response.data.success || true,
+        message: response.data.message
+      };
+    } catch (error: any) {
+      console.error('ConversationsService: Failed to mark messages as read:', error);
+      throw new Error(error.response?.data?.message || 'Failed to mark messages as read');
     }
   }
 }

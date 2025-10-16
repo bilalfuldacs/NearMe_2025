@@ -22,7 +22,7 @@ import ConversationView from '../components/eventDetails/ConversationView';
 import HostConversationActions from '../components/eventDetails/HostConversationActions';
 import { Message, ConversationListItem, conversationsService } from '../services/conversationsService';
 import { AuthContext } from '../auth/authContext';
-import { getStatusColor, formatTimeAgo } from '../utils';
+import { getStatusColor, formatTimeAgo, getInitials } from '../utils';
 
 const MessagesPage: React.FC = () => {
   const authContext = useContext(AuthContext);
@@ -67,6 +67,7 @@ const MessagesPage: React.FC = () => {
     setError(null);
 
     try {
+      // Fetch messages
       const result = await conversationsService.getConversationMessages(conversationId);
       setMessages(result.messages);
       setConversationStatus(result.conversation.status as 'pending' | 'confirmed' | 'rejected');
@@ -81,6 +82,25 @@ const MessagesPage: React.FC = () => {
           ? result.conversation.user.name 
           : result.conversation.host.name
       );
+      
+      // Mark messages as read
+      const conversation = conversations.find(c => c.conversation_id === conversationId);
+      if (conversation && conversation.unread_count > 0) {
+        try {
+          await conversationsService.markMessagesAsRead(conversationId);
+          // Update local state to clear unread count
+          setConversations(prev => 
+            prev.map(c => 
+              c.conversation_id === conversationId 
+                ? { ...c, unread_count: 0 }
+                : c
+            )
+          );
+        } catch (markError) {
+          console.error('Failed to mark messages as read:', markError);
+          // Don't show error to user, this is a non-critical operation
+        }
+      }
     } catch (err: any) {
       console.error('Failed to fetch messages:', err);
       setError(err.message || 'Failed to load messages');
@@ -228,23 +248,48 @@ const MessagesPage: React.FC = () => {
                   sx={{
                         py: 2,
                         px: 2,
+                        backgroundColor: conversation.unread_count > 0 ? 'rgba(25, 118, 210, 0.04)' : 'transparent',
                         '&.Mui-selected': {
                           backgroundColor: 'primary.light',
                           '&:hover': {
                             backgroundColor: 'primary.light',
                           },
                         },
+                        '&:hover': {
+                          backgroundColor: conversation.unread_count > 0 ? 'rgba(25, 118, 210, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                        },
                   }}
                 >
                   <ListItemAvatar>
-                            <Avatar sx={{ bgcolor: 'primary.main' }}>
-                              {conversation.other_person.name.charAt(0)}
-                    </Avatar>
+                            <Badge
+                              badgeContent={conversation.unread_count}
+                              color="error"
+                              max={99}
+                              sx={{
+                                '& .MuiBadge-badge': {
+                                  fontSize: '0.65rem',
+                                  height: 18,
+                                  minWidth: 18,
+                                  fontWeight: 'bold',
+                                }
+                              }}
+                            >
+                              <Avatar sx={{ bgcolor: 'primary.main' }}>
+                                {getInitials(conversation.other_person.name)}
+                              </Avatar>
+                            </Badge>
                   </ListItemAvatar>
                   <ListItemText
                     primary={
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                                <Typography variant="body1" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
+                                <Typography 
+                                  variant="body1" 
+                                  sx={{ 
+                                    fontWeight: conversation.unread_count > 0 ? 'bold' : 600, 
+                                    fontSize: '0.95rem',
+                                    color: conversation.unread_count > 0 ? 'primary.main' : 'text.primary',
+                                  }}
+                                >
                                   {conversation.event.title}
                         </Typography>
                                 <Chip
@@ -266,11 +311,19 @@ const MessagesPage: React.FC = () => {
                                     textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap',
                                     mb: 0.5,
+                                    fontWeight: conversation.unread_count > 0 ? 600 : 400,
                                   }}
                                 >
                                   {conversation.last_message.sender_name}: {conversation.last_message.text}
                                 </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                            <Typography 
+                              variant="caption" 
+                              color="text.secondary" 
+                              sx={{ 
+                                fontSize: '0.7rem',
+                                fontWeight: conversation.unread_count > 0 ? 600 : 400,
+                              }}
+                            >
                               {formatTimeAgo(conversation.last_message.created_at)}
                             </Typography>
                               </Box>
