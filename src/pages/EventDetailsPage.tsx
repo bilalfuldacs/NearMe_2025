@@ -6,12 +6,8 @@ import {
   Typography,
   Alert,
   Card,
-  TextField,
-  Button,
-  Paper,
   CircularProgress
 } from '@mui/material';
-import { People } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
 import { Event } from '../store/eventsSlice';
@@ -20,6 +16,9 @@ import EventImageSlider from '../components/eventDetails/EventImageSlider';
 import EventHeader from '../components/eventDetails/EventHeader';
 import EventDetails from '../components/eventDetails/EventDetails';
 import EventMap from '../components/eventDetails/EventMap';
+import SendRequestDialog from '../components/eventDetails/SendRequestDialog';
+import { eventsService } from '../services/eventsService';
+import { conversationsService } from '../services/conversationsService';
 
 const EventDetailsPage: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -33,52 +32,34 @@ const EventDetailsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [showChatScreen, setShowChatScreen] = useState(false);
-  const [message, setMessage] = useState('');
-  const [existingConversation, setExistingConversation] = useState<any>(null);
-  const [chatHistory, setChatHistory] = useState<any[]>([]);
-  const [remainingSpots, setRemainingSpots] = useState<number | null>(null);
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
 
-  // Fetch remaining spots for this event
-  const fetchRemainingSpots = async () => {
-    if (!event?.id) return;
-    
-    try {
-      const response = await fetch(`http://localhost:8000/api/conversations/event/${event.id}/`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          // Count confirmed attendees
-          const confirmedCount = data.conversations.filter((conv: any) => conv.status === 'confirmed').length;
-          const remaining = event.max_attendees - confirmedCount;
-          setRemainingSpots(Math.max(0, remaining));
+  useEffect(() => {
+    const fetchEventDetails = async () => {
+      if (!eventId) return;
+      
+      setLoading(true);
+      try {
+        // Fetch full event details from API to get images
+        const eventDetails = await eventsService.getEventById(parseInt(eventId));
+        setEvent(eventDetails);
+        setError(null);
+      } catch (err: any) {
+        console.error('Failed to fetch event details:', err);
+        // Fallback to Redux state if API call fails
+        const foundEvent = events.find(e => e.id === parseInt(eventId));
+        if (foundEvent) {
+          setEvent(foundEvent);
+        } else {
+          setError('Failed to load event details');
         }
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching remaining spots:', error);
-    }
-  };
+    };
 
-  useEffect(() => {
-    if (eventId && events.length > 0) {
-      const foundEvent = events.find(e => e.id === parseInt(eventId));
-      if (foundEvent) {
-        setEvent(foundEvent);
-      }
-      setLoading(false);
-    }
+    fetchEventDetails();
   }, [eventId, events]);
-
-  // Fetch remaining spots when event changes
-  useEffect(() => {
-    if (event?.id) {
-      fetchRemainingSpots();
-    }
-  }, [event?.id]);
 
   const isOrganizer = Boolean(event && user && event.organizer_email === user.email);
 
@@ -90,213 +71,89 @@ const EventDetailsPage: React.FC = () => {
     navigate(`/edit-event/${eventId}`);
   };
 
-  const handleDelete = () => {
-    // TODO: Implement delete functionality
-    console.log('Delete event:', eventId);
-  };
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+      return;
+    }
 
-  const handleSendRequest = async () => {
     if (!user) {
-      setError('You must be logged in to send a request');
+      setError('You must be logged in to delete an event');
       return;
     }
 
     setLoading(true);
     setError(null);
-    setSuccess(null);
 
     try {
-      const checkData = {
-        event_id: parseInt(eventId || '0'),
-        user_id: user.id || 1
-      };
+      // Use events service - handles JWT token and refresh automatically via interceptor
+      await eventsService.deleteEvent(parseInt(eventId!));
+      
+      setSuccess('Event deleted successfully! Redirecting...');
+      
+      // Redirect to My Events page after 1.5 seconds
+      setTimeout(() => {
+        navigate('/my-events');
+      }, 1500);
 
-      console.log('Checking if conversation exists:', checkData);
+    } catch (error: any) {
+      console.error('EventDetailsPage: Error deleting event:', error);
+      setError(error.message || 'Failed to delete event. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // First, check if conversation already exists
-      const checkResponse = await fetch(`http://localhost:8000/api/conversations/check/?event_id=${checkData.event_id}&user_id=${checkData.user_id}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        }
+  const handleSendRequest = () => {
+    setRequestDialogOpen(true);
+  };
+
+  const handleCloseRequestDialog = () => {
+    setRequestDialogOpen(false);
+  };
+
+  const handleCheckConversation = async (eventId: number) => {
+    try {
+      const result = await conversationsService.checkConversation(eventId);
+      return result;
+    } catch (error: any) {
+      console.error('Failed to check conversation:', error);
+      throw error;
+    }
+  };
+
+  const handleSubmitRequest = async (message: string) => {
+    if (!eventId) {
+      setError('Event ID is missing');
+      return;
+    }
+
+    try {
+      // Send join request via conversations service
+      const result = await conversationsService.sendJoinRequest({
+        event_id: parseInt(eventId),
+        message: message || "Hi! I'd like to join this event."
       });
 
-      console.log('Check response status:', checkResponse.status);
-
-      if (checkResponse.ok) {
-        const checkResult = await checkResponse.json();
-        console.log('Check result:', checkResult);
-        
-        // If conversation exists, fetch the conversation and chat history
-        if (checkResult.exists) {
-          console.log('Check result conversation data:', checkResult);
-          
-          // Use conversation_id from check response
-          const conversationId = checkResult.conversation_id || checkResult.conversation?.id;
-          
-          if (conversationId) {
-            setExistingConversation({ id: conversationId, ...checkResult.conversation });
-            
-            // Fetch chat history for this conversation
-            const historyResponse = await fetch(`http://localhost:8000/api/conversations/${conversationId}/messages/`, {
-              method: 'GET',
-              headers: {
-                'Accept': 'application/json'
-              }
-            });
-            
-            console.log('History response status:', historyResponse.status);
-            
-            if (historyResponse.ok) {
-              const historyData = await historyResponse.json();
-              console.log('Chat history data:', historyData);
-              const messages = historyData.messages || [];
-              console.log('Messages to display:', messages);
-              messages.forEach((msg: any, index: number) => {
-                console.log(`Message ${index}:`, {
-                  text: msg.text,
-                  sender_name: msg.sender_name,
-                  created_at: msg.created_at,
-                  is_from_user: msg.is_from_user,
-                  parsed_date: new Date(msg.created_at)
-                });
-              });
-              setChatHistory(messages);
-            } else {
-              console.error('Failed to fetch chat history:', historyResponse.status);
-              setChatHistory([]);
-            }
-          } else {
-            console.error('No conversation ID found in check response:', checkResult);
-            setChatHistory([]);
-          }
-          
-          setShowChatScreen(true);
-          setSuccess('You have an existing conversation for this event. You can continue the chat below.');
-          return;
-        }
-      }
-
-      // If conversation doesn't exist, show chat screen for user to write message
-      setShowChatScreen(true);
-      setSuccess('Please write your message below:');
-
-    } catch (error) {
-      console.error('Error sending request:', error);
-      setError('Failed to send request. Please try again.');
-    } finally {
-      setLoading(false);
+      setSuccess('Request sent successfully! The organizer will review your request.');
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccess(null), 5000);
+    } catch (error: any) {
+      console.error('Failed to send join request:', error);
+      setError(error.message || 'Failed to send request. Please try again.');
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setError(null), 5000);
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!user || !message.trim()) {
-      setError('Please enter a message');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
+  const handleSendMessage = async (eventId: number, message: string) => {
     try {
-      if (existingConversation) {
-        // Send message to existing conversation
-        const conversationId = existingConversation.id || existingConversation;
-        const messageData = {
-          conversation_id: conversationId,
-          sender_id: user.id || 1,
-          text: message.trim()
-        };
-
-        console.log('Sending message to existing conversation:', messageData);
-
-        const response = await fetch('http://localhost:8000/api/messages/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(messageData)
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        console.log('Message sent successfully:', result);
-        
-        // Add the new message to chat history
-        // Handle different possible response structures
-        const newMessage = result.message || result;
-        console.log('Adding new message to chat history:', newMessage);
-        
-        // Ensure the message has the required fields for display
-        const formattedMessage = {
-          message_id: newMessage.message_id || newMessage.id || Date.now(),
-          sender_id: newMessage.sender_id || user.id || 1,
-          sender_name: newMessage.sender_name || user.username || 'You',
-          text: newMessage.text || newMessage.message || message.trim(),
-          created_at: newMessage.created_at || new Date().toISOString(),
-          is_from_user: newMessage.is_from_user !== undefined ? newMessage.is_from_user : true
-        };
-        
-        console.log('Formatted message for display:', formattedMessage);
-        setChatHistory(prev => [...prev, formattedMessage]);
-        setMessage('');
-        setSuccess('Message sent successfully!');
-        
-      } else {
-        // Create new conversation
-        const requestData = {
-          event_id: parseInt(eventId || '0'),
-          user_id: user.id || 1,
-          message: message.trim()
-        };
-
-        console.log('Creating new conversation:', requestData);
-
-        const response = await fetch('http://localhost:8000/api/conversations/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(requestData)
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        console.log('Request sent successfully:', result);
-        
-        setSuccess('Your request has been sent successfully!');
-        setShowChatScreen(false);
-        setMessage('');
-        
-        // Redirect to home page after 2 seconds
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
-      }
-
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setError('Failed to send message. Please try again.');
-    } finally {
-      setLoading(false);
+      await conversationsService.sendMessage(eventId, message);
+    } catch (error: any) {
+      console.error('Failed to send message:', error);
+      throw error;
     }
-  };
-
-  const handleCancelMessage = () => {
-    setShowChatScreen(false);
-    setMessage('');
-    setError(null);
-    setSuccess(null);
-    setExistingConversation(null);
-    setChatHistory([]);
   };
 
   if (loading) {
@@ -308,7 +165,7 @@ const EventDetailsPage: React.FC = () => {
         alignItems: 'center', 
         justifyContent: 'center' 
       }}>
-        <Typography>Loading...</Typography>
+        <CircularProgress />
       </Box>
     );
   }
@@ -340,122 +197,6 @@ const EventDetailsPage: React.FC = () => {
           </Alert>
         )}
 
-        {/* Chat Screen for Writing Message */}
-        {showChatScreen && (
-          <Paper sx={{ mb: 3, borderRadius: 2, overflow: 'hidden' }}>
-            {/* Chat Header */}
-            <Box sx={{ p: 3, borderBottom: '1px solid #e0e0e0', backgroundColor: '#f8f9fa' }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                {existingConversation ? 'Continue Conversation' : 'Send Message'} to {event?.organizer_name}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Event: {event?.title}
-              </Typography>
-            </Box>
-
-            {/* Chat History */}
-            {existingConversation && chatHistory.length > 0 && (
-              <Box sx={{ p: 3, backgroundColor: '#fafafa', maxHeight: '300px', overflow: 'auto' }}>
-                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>
-                  Chat History:
-                </Typography>
-                {chatHistory.map((msg, index) => {
-                  // Check if the message is from the current logged-in user
-                  const isFromCurrentUser = msg.sender_id === user?.id || 
-                                           msg.sender_name === user?.username ||
-                                           msg.sender_name === user?.email ||
-                                           msg.is_from_user;
-                  
-                  console.log('Message display check:', {
-                    messageId: msg.message_id,
-                    senderId: msg.sender_id,
-                    senderName: msg.sender_name,
-                    currentUserId: user?.id,
-                    currentUserName: user?.username,
-                    currentUserEmail: user?.email,
-                    isFromCurrentUser: isFromCurrentUser
-                  });
-
-                  return (
-                    <Box
-                      key={msg.message_id || index}
-                      sx={{
-                        display: 'flex',
-                        justifyContent: isFromCurrentUser ? 'flex-end' : 'flex-start',
-                        mb: 2
-                      }}
-                    >
-                      <Paper
-                        sx={{
-                          p: 2,
-                          maxWidth: '70%',
-                          backgroundColor: isFromCurrentUser ? '#1976d2' : 'white',
-                          color: isFromCurrentUser ? 'white' : 'black',
-                          borderRadius: 2,
-                          boxShadow: 1
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ lineHeight: 1.4 }}>
-                          {msg.text}
-                        </Typography>
-                        <Typography 
-                          variant="caption" 
-                          sx={{ 
-                            fontSize: '0.7rem',
-                            display: 'block',
-                            mt: 0.5,
-                            opacity: 0.7
-                          }}
-                        >
-                          {msg.sender_name} • {new Date(msg.created_at).toLocaleString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </Typography>
-                      </Paper>
-                    </Box>
-                  );
-                })}
-              </Box>
-            )}
-
-            {/* Message Input */}
-            <Box sx={{ p: 3 }}>
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder={existingConversation ? "Continue the conversation..." : "Tell the organizer why you'd like to join this event..."}
-                variant="outlined"
-                sx={{ mb: 3 }}
-              />
-              
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                <Button
-                  variant="outlined"
-                  onClick={handleCancelMessage}
-                  disabled={loading}
-                >
-                  {existingConversation ? 'Close Chat' : 'Cancel'}
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={handleSendMessage}
-                  disabled={loading || !message.trim()}
-                  startIcon={loading ? <CircularProgress size={20} /> : null}
-                >
-                  {loading ? 'Sending...' : existingConversation ? 'Send Reply' : 'Send Message'}
-                </Button>
-              </Box>
-            </Box>
-          </Paper>
-        )}
-        
         <Box sx={{ 
           backgroundColor: 'white', 
           borderRadius: 2, 
@@ -465,7 +206,7 @@ const EventDetailsPage: React.FC = () => {
           {/* Image Slider Card */}
           <Card sx={{ mb: 4, borderRadius: 2, overflow: 'hidden' }}>
             <EventImageSlider
-              images={event.all_images}
+              images={event.all_images || []}
               onBack={handleBack}
             />
           </Card>
@@ -474,7 +215,7 @@ const EventDetailsPage: React.FC = () => {
           <EventHeader
             event={event}
             isOrganizer={isOrganizer}
-            remainingSpots={remainingSpots}
+            remainingSpots={event.available_spots ?? (event.max_attendees - (event.confirmed_attendees || 0))}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onSendRequest={handleSendRequest}
@@ -490,6 +231,22 @@ const EventDetailsPage: React.FC = () => {
             <EventMap event={event} />
           </Card>
         </Box>
+
+        {/* Send Request Dialog */}
+        {eventId && (
+          <SendRequestDialog
+            open={requestDialogOpen}
+            onClose={handleCloseRequestDialog}
+            onSubmit={handleSubmitRequest}
+            onSendMessage={handleSendMessage}
+            onCheckConversation={handleCheckConversation}
+            eventTitle={event.title}
+            organizerName={event.organizer_name}
+            eventId={parseInt(eventId)}
+            currentUserEmail={user?.email || ''}
+            isHost={isOrganizer}
+          />
+        )}
       </Container>
     </Box>
   );

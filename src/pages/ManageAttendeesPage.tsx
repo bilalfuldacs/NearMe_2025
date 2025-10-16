@@ -1,57 +1,20 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Paper,
-  Chip,
   Button,
-  IconButton,
-  Avatar,
   CircularProgress,
   Alert,
-  Card,
-  CardContent,
-  Grid
 } from '@mui/material';
-import { 
-  Message, 
-  ArrowBack,
-  Person,
-  CheckCircle,
-  Cancel,
-  Pending
-} from '@mui/icons-material';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { AuthContext } from '../auth/authContext';
-
-// Interface for conversation data (from event conversations endpoint)
-interface EventConversation {
-  id: number;
-  event: number;
-  event_title: string;
-  user: number;
-  user_name: string;
-  user_email?: string;
-  host: number;
-  host_name: string;
-  status: string; // "pending", "confirmed", "rejected"
-  created_at: string;
-  updated_at: string;
-  last_message?: {
-    id: number;
-    text: string;
-    sender_name: string;
-    created_at: string;
-  };
-  message_count: number;
-}
+import { useEventAttendees, AttendeeRequest } from '../hooks/useEventAttendees';
+import { conversationsService } from '../services/conversationsService';
+import AttendeesList from '../components/eventDetails/AttendeesList';
+import SendRequestDialog from '../components/eventDetails/SendRequestDialog';
 
 const ManageAttendeesPage: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -59,209 +22,130 @@ const ManageAttendeesPage: React.FC = () => {
   const authContext = useContext(AuthContext);
   const user = authContext?.user;
 
-  const [conversations, setConversations] = useState<EventConversation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { attendees, eventInfo, loading, error } = useEventAttendees({
+    eventId: eventId ? parseInt(eventId) : null,
+  });
 
-  // Fetch conversations for the event
-  useEffect(() => {
-    if (eventId) {
-      fetchEventConversations();
-    }
-  }, [eventId]);
+  const [selectedAttendee, setSelectedAttendee] = useState<AttendeeRequest | null>(null);
+  const [chatDialogOpen, setChatDialogOpen] = useState(false);
+  const [selectedEventTitle, setSelectedEventTitle] = useState<string>('');
 
-  const fetchEventConversations = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch(`http://localhost:8000/api/conversations/event/${eventId}/`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Fetched event conversations:', data);
-      
-      const conversationsData = data.conversations || data || [];
-      setConversations(conversationsData);
-    } catch (err) {
-      console.error('Error fetching event conversations:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch event conversations');
-    } finally {
-      setLoading(false);
-    }
+  const handleBack = () => {
+    navigate(`/event/${eventId}`);
   };
 
-
-  const handleStatusUpdate = async (conversationId: number, newStatus: string) => {
-    try {
-      setLoading(true);
-      
-      // Update conversation status
-      const response = await fetch(`http://localhost:8000/api/conversations/${conversationId}/status/`, {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json' 
-        },
-        body: JSON.stringify({
-          status: newStatus
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('Status updated:', result);
-
-      // Update local state
-      setConversations(prev => prev.map(conversation => 
-        conversation.id === conversationId 
-          ? { ...conversation, status: newStatus }
-          : conversation
-      ));
-
-    } catch (err) {
-      console.error('Error updating status:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update status');
-    } finally {
-      setLoading(false);
-    }
+  const handleOpenChat = (attendee: AttendeeRequest) => {
+    setSelectedAttendee(attendee);
+    setSelectedEventTitle(eventInfo?.title || 'Event');
+    setChatDialogOpen(true);
   };
 
-  const handleChatRedirect = (conversationId: number) => {
-    navigate(`/messages?conversation=${conversationId}`);
+  const handleCloseChat = () => {
+    setChatDialogOpen(false);
+    setSelectedAttendee(null);
   };
 
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'success';
-      case 'rejected':
-        return 'error';
-      case 'pending':
-      default:
-        return 'default';
-    }
+  const getStats = () => {
+    const pending = attendees.filter(a => a.status === 'pending').length;
+    const confirmed = attendees.filter(a => a.status === 'confirmed').length;
+    const rejected = attendees.filter(a => a.status === 'rejected').length;
+    return { pending, confirmed, rejected, total: attendees.length };
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return <CheckCircle />;
-      case 'rejected':
-        return <Cancel />;
-      case 'pending':
-      default:
-        return <Pending />;
-    }
-  };
+  const stats = getStats();
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  if (loading) {
+    return (
+      <Box sx={{ minHeight: '100vh', backgroundColor: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: '#f8f9fa', py: 4 }}>
       <Container maxWidth="lg">
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: 3 }}>
           <Button
-            startIcon={<ArrowBack />}
-            onClick={() => navigate(-1)}
-            sx={{ mb: 2 }}
+            startIcon={<ArrowBackIcon />}
+            onClick={handleBack}
+            sx={{ mb: 2, textTransform: 'none' }}
           >
             Back to Event
           </Button>
           
-          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
             Manage Attendees
           </Typography>
-          
           <Typography variant="body1" color="text.secondary">
-            View and manage all users who have requested to join this event
+            Review and manage attendance requests for your event
           </Typography>
         </Box>
 
-        {/* Stats Cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid sx={{ sm: 4 }}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Event Info & Stats Cards */}
+        {eventInfo && (
+          <Paper sx={{ p: 3, mb: 3, backgroundColor: 'primary.light' }}>
+            <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+              {eventInfo.title}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                   <Box>
+                <Typography variant="body2" color="text.secondary">
+                  Confirmed Attendees
+                </Typography>
                     <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                      {conversations.filter(c => c.status === 'pending').length}
+                  {eventInfo.confirmed_attendees}
                     </Typography>
+              </Box>
+              <Box>
                     <Typography variant="body2" color="text.secondary">
-                      Pending
+                  Available Spots
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  {eventInfo.available_spots}
                     </Typography>
                   </Box>
-                  <Pending color="action" />
                 </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid sx={{ sm: 4 }}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                      {conversations.filter(c => c.status === 'confirmed').length}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Confirmed
-                    </Typography>
-                  </Box>
-                  <CheckCircle color="success" />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid sx={{ sm: 4 }}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'error.main' }}>
-                      {conversations.filter(c => c.status === 'rejected').length}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Rejected
-                    </Typography>
-                  </Box>
-                  <Cancel color="error" />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-
-        {/* Loading State */}
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress />
-          </Box>
+          </Paper>
         )}
 
-        {/* Error State */}
+        <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+          <Paper sx={{ p: 2, flex: 1, minWidth: 150 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Total Requests
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+              {stats.total}
+            </Typography>
+          </Paper>
+          <Paper sx={{ p: 2, flex: 1, minWidth: 150 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Pending
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'warning.main' }}>
+              {stats.pending}
+                    </Typography>
+          </Paper>
+          <Paper sx={{ p: 2, flex: 1, minWidth: 150 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Confirmed
+                    </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+              {stats.confirmed}
+                    </Typography>
+          </Paper>
+          <Paper sx={{ p: 2, flex: 1, minWidth: 150 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Rejected
+                    </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'error.main' }}>
+              {stats.rejected}
+            </Typography>
+          </Paper>
+                </Box>
+
+        {/* Error Message */}
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
             {error}
@@ -269,115 +153,69 @@ const ManageAttendeesPage: React.FC = () => {
         )}
 
         {/* Attendees Table */}
-        {!loading && !error && (
-          <TableContainer component={Paper} sx={{ borderRadius: 2, overflow: 'hidden' }}>
-            <Table>
-              <TableHead>
-                <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
-                  <TableCell sx={{ fontWeight: 'bold' }}>User</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Request Date</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {conversations.length > 0 ? (
-                  conversations.map((conversation) => (
-                    <TableRow key={conversation.id} hover>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Avatar sx={{ backgroundColor: '#1976d2' }}>
-                            {conversation.user_name.charAt(0).toUpperCase()}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                              {conversation.user_name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {conversation.user_email || 'No email provided'}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <Chip
-                          icon={getStatusIcon(conversation.status)}
-                          label={conversation.status}
-                          color={getStatusColor(conversation.status) as any}
-                          size="small"
-                          sx={{ fontWeight: 'bold' }}
-                        />
-                      </TableCell>
-                      
-                      <TableCell>
-                        <Typography variant="body2">
-                          {formatDate(conversation.created_at)}
-                        </Typography>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                          {/* Chat Button */}
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<Message />}
-                            onClick={() => handleChatRedirect(conversation.id)}
-                            sx={{ textTransform: 'none' }}
-                          >
-                            Chat
-                          </Button>
-                          
-                          {/* Status Update Buttons - Only show for pending */}
-                          {conversation.status === 'pending' && (
-                            <>
-                              <Button
-                                variant="contained"
-                                color="success"
-                                size="small"
-                                onClick={() => handleStatusUpdate(conversation.id, 'confirmed')}
-                                disabled={loading}
-                                sx={{ textTransform: 'none' }}
-                              >
-                                Confirm
-                              </Button>
-                              <Button
-                                variant="contained"
-                                color="error"
-                                size="small"
-                                onClick={() => handleStatusUpdate(conversation.id, 'rejected')}
-                                disabled={loading}
-                                sx={{ textTransform: 'none' }}
-                              >
-                                Reject
-                              </Button>
-                            </>
-                          )}
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} sx={{ textAlign: 'center', py: 4 }}>
-                      <Person sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                      <Typography variant="h6" color="text.secondary" gutterBottom>
-                        No conversations yet
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        When people request to join your event, their conversations will appear here.
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+        <AttendeesList
+          attendees={attendees}
+          onOpenChat={handleOpenChat}
+          loading={loading}
+        />
       </Container>
+
+      {/* Chat Dialog */}
+      {selectedAttendee && eventId && (
+        <SendRequestDialog
+          open={chatDialogOpen}
+          onClose={handleCloseChat}
+          onSubmit={async () => {}}
+          onSendMessage={async (eventId, message) => {
+            await conversationsService.sendMessage(eventId, message);
+          }}
+          onCheckConversation={async (checkEventId) => {
+            // Fetch actual conversation messages from API
+            const result = await conversationsService.getConversationMessages(selectedAttendee.conversation_id);
+            
+            // Transform to match expected ConversationDetail type
+            const conversationDetail: any = {
+              id: result.conversation.id,
+              status: result.conversation.status as 'pending' | 'confirmed' | 'rejected',
+              created_at: selectedAttendee.request_date,
+              updated_at: selectedAttendee.request_date,
+              confirmed_at: null,
+              rejected_at: null,
+              event: {
+                id: result.conversation.event.id,
+                title: result.conversation.event.title,
+                description: result.conversation.event.description,
+                start_date: result.conversation.event.start_date,
+                end_date: result.conversation.event.start_date,
+                start_time: '00:00:00',
+                end_time: '23:59:00',
+                city: result.conversation.event.city,
+                state: result.conversation.event.state,
+                max_attendees: 0,
+                confirmed_attendees: 0,
+                is_full: false,
+              },
+              user: result.conversation.user,
+              host: result.conversation.host,
+              message_count: result.conversation.message_count,
+            };
+            
+            return {
+              exists: true,
+              conversation: conversationDetail,
+              messages: result.messages,
+            };
+          }}
+          eventTitle={selectedEventTitle}
+          organizerName={user?.name || 'You'}
+          eventId={parseInt(eventId)}
+          currentUserEmail={user?.email || ''}
+          isHost={true}
+        />
+      )}
     </Box>
   );
 };
 
 export default ManageAttendeesPage;
+

@@ -6,12 +6,17 @@ export interface Event {
   title: string;
   description: string;
   max_attendees: number;
+  confirmed_attendees?: number;
+  available_spots?: number;
+  is_full?: boolean;
   start_date: string;
   end_date: string;
   start_time: string;
   end_time: string;
+  street?: string;
   city: string;
   state: string;
+  postal_code?: string;
   organizer_name: string;
   organizer_email: string;
   organizer_id?: number;
@@ -78,6 +83,5 @@ export const {
   setEvents,
 } = eventsSlice.actions;
 
-// Export reducer
 export default eventsSlice.reducer;
 

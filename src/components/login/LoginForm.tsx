@@ -15,20 +15,20 @@ import { Link as RouterLink } from 'react-router-dom'
 import { InputField } from '../common/InputeField'
 import LoginFormSvg from './LoginFormSvg'
 import { loginValidationFunction } from '../common/validationFunction'
-import useApiHook from '../hookes/useApiHook'
 import type { Error } from '../signup/SignupForm'
 import { AuthContext } from '../../auth/authContext'
 
 export const LoginForm = () => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const {login} = useContext(AuthContext) || {}
-  const [data, setData] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
-    const [loginData, setLoginData] = useState({
-        email: '',
-        password: ''
+  const authContext = useContext(AuthContext)
+  const { login, loading: authLoading } = authContext || {}
+  
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [loginData, setLoginData] = useState({
+    email: '',
+    password: ''
   })
   const [validation, setValidation] = useState<Error>({})
   
@@ -37,44 +37,50 @@ export const LoginForm = () => {
       ...prev,
       [field]: event.target.value
     }))
+    // Clear errors when user types
+    if (error) setError(null)
+    if (success) setSuccess(null)
   }
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    const validation = loginValidationFunction(loginData)
-    setValidation(validation)
     
-    if (Object.keys(validation).length === 0) {
-        try {
-          const response = await fetch('http://localhost:8000/api/login/', {
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json'
-                },
-              method: 'POST',
-              body: JSON.stringify(loginData)
-          });
-          if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          const data = await response.json();
-          console.log('Login API response:', data);
-          
-          // Call login function after successful API response
-          if (data && data.user && login) {
-            const user = data.user;
-            console.log('User data from API:', user);
-            console.log('Setting user with email:', user.email);
-            login(user.name, user.email, "user", user.id);
-            // PublicRoute will automatically redirect to home page
-          }
-          
-          
-      } catch (error) {
+    // Validate form
+    const validationErrors = loginValidationFunction(loginData)
+    setValidation(validationErrors)
+    
+    if (Object.keys(validationErrors).length === 0) {
+      setError(null)
+      setSuccess(null)
+      
+      try {
+        if (!login) {
+          throw new Error('Authentication context not available');
+        }
         
-      } finally {
-          
+        // Call login from context (which uses authService)
+        await login({
+          email: loginData.email,
+          password: loginData.password
+        });
+        
+        setSuccess('Login successful! Redirecting...');
+        
+        // PublicRoute will automatically redirect to home page
+        
+      } catch (error: any) {
+        console.error('LoginForm: Login failed', error);
+        
+        // Display user-friendly error messages
+        if (error.message?.includes('401')) {
+          setError('Invalid email or password. Please try again.');
+        } else if (error.message?.includes('400')) {
+          setError('Invalid credentials. Please check your email and password.');
+        } else {
+          setError(error.message || 'Login failed. Please try again.');
+        }
       }
+    } else {
     }
   }
 
@@ -193,7 +199,7 @@ export const LoginForm = () => {
                   type="submit" 
                   variant="contained" 
                   size="large"
-                  disabled={loading}
+                  disabled={authLoading}
                   sx={{ 
                     mt: 2, 
                     py: 1.5,
@@ -203,7 +209,7 @@ export const LoginForm = () => {
                     borderRadius: 2
                   }}
                 >
-                  {loading ? 'Signing In...' : 'Sign In'}
+                  {authLoading ? 'Signing In...' : 'Sign In'}
                 </Button>
                 
                 <Box sx={{ textAlign: 'center', mt: 2 }}>
@@ -221,15 +227,15 @@ export const LoginForm = () => {
                 </Box>
                 
                 {/* Success/Error Messages */}
-                {data && (
+                {success && (
                   <Alert severity="success" sx={{ mt: 2 }}>
-                    Login successful! Welcome back! 🎉
+                    {success}
                   </Alert>
                 )}
                 
                 {error && (
                   <Alert severity="error" sx={{ mt: 2 }}>
-                    Login failed. Please check your credentials.
+                    {error}
                   </Alert>
                 )}
             </Box>

@@ -10,9 +10,19 @@ interface EventCreationProps {
   onImagesChange: (images: string[]) => void;
   onSave: () => void;
   validation?: {[key: string]: string};
+  isEditMode?: boolean;
+  loading?: boolean;
 }
 
-const EventCreation: React.FC<EventCreationProps> = ({ eventData, handleInputChange, onImagesChange, onSave, validation = {} }) => {
+const EventCreation: React.FC<EventCreationProps> = ({ 
+  eventData, 
+  handleInputChange, 
+  onImagesChange, 
+  onSave, 
+  validation = {},
+  isEditMode = false,
+  loading = false
+}) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       <InputField 
@@ -108,6 +118,7 @@ const EventCreation: React.FC<EventCreationProps> = ({ eventData, handleInputCha
           variant="contained"
           size="large"
           onClick={onSave}
+          disabled={loading}
           sx={{
             px: 6,
             py: 2,
@@ -117,7 +128,7 @@ const EventCreation: React.FC<EventCreationProps> = ({ eventData, handleInputCha
             textTransform: 'none'
           }}
         >
-          Save Event
+          {loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Event' : 'Create Event')}
         </Button>
       </Box>
     </Box>

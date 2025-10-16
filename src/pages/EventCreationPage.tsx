@@ -1,138 +1,116 @@
-import React, { useState, useContext } from 'react';
-import EventCreation from '../components/eventCreation/EventCreation';
-import { Box, Container, Paper, Typography, Alert } from '@mui/material';
-import { eventValidationFunction } from '../components/common/validationFunction';
+import React, { useContext, useEffect, useCallback, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Box, Container, Paper, Typography, Alert, CircularProgress } from '@mui/material';
 import { AuthContext } from '../auth/authContext';
+import EventCreation from '../components/eventCreation/EventCreation';
+import { useEventForm } from '../hooks/useEventForm';
+import { useEventData } from '../hooks/useEventData';
+import { useEventSubmit } from '../hooks/useEventSubmit';
 
-const EventCreationPage = () => {
+interface EventCreationPageProps {
+    mode?: 'create' | 'edit';
+}
+
+const REDIRECT_DELAY = 1500;
+
+const EventCreationPage: React.FC<EventCreationPageProps> = ({ mode = 'create' }) => {
+    const { eventId } = useParams<{ eventId: string }>();
+    const navigate = useNavigate();
     const authContext = useContext(AuthContext);
-    const user = authContext?.user;
-    const [eventData, setEventData] = useState({
-        title: '',
-        description: '',
-        startDate: '',
-        endDate: '',
-        startTime: '',
-        endTime: '',
-        maxAttendance: '',
-            street: '',
-            city: '',
-            state: '',
-            zip: '',
-        images: [] as string[],
-    })
-    const [validation, setValidation] = useState<{[key: string]: string}>({})
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [success, setSuccess] = useState<string | null>(null)
-    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setEventData({
-            ...eventData,
-            [event.target.name]: event.target.value
-        })
-        console.log(eventData)
-    }
+    const user = authContext?.user ?? null;
+    
+    const isEditMode = useMemo(() => mode === 'edit', [mode]);
 
-    const handleImagesChange = (images: string[]) => {
-        setEventData({
-            ...eventData,
-            images: images
-        })
-        console.log('Images updated:', images)
-    }
+    // Custom hooks for form management
+    const {
+        eventData,
+        validation,
+        handleInputChange,
+        handleImagesChange,
+        validateForm,
+        resetForm,
+        setFormData,
+    } = useEventForm();
 
-    const handleSave = async () => {
-        // Check if user is authenticated
-        if (!user) {
-            setError('Please login to create an event')
-            return
+    // Handle unauthorized access
+    const handleUnauthorized = useCallback(() => {
+        setTimeout(() => navigate(`/event/${eventId}`), 2000);
+    }, [navigate, eventId]);
+
+    // Custom hook for fetching event data
+    const {
+        event,
+        loading: loadingEvent,
+        error: fetchError,
+        transformEventToFormData,
+    } = useEventData({
+        eventId,
+        isEditMode,
+        userEmail: user?.email,
+        onUnauthorized: handleUnauthorized,
+    });
+
+    // Handle successful submission
+    const handleSuccess = useCallback((isEdit: boolean) => {
+        if (isEdit && eventId) {
+            setTimeout(() => {
+                navigate(`/event/${eventId}`);
+            }, REDIRECT_DELAY);
+        } else {
+            resetForm();
         }
-        
+    }, [eventId, navigate, resetForm]);
 
-        // Create validation data with images as string
-        const validationData = {
-            ...eventData,
-            images: eventData.images.join(',') // Convert array to string for validation
+    // Custom hook for event submission
+    const {
+        saving,
+        error: submitError,
+        success,
+        submitEvent,
+    } = useEventSubmit({
+        isEditMode,
+        eventId,
+        user,
+        onSuccess: handleSuccess,
+    });
+
+    // Populate form with event data when editing
+    useEffect(() => {
+        if (event && isEditMode) {
+            const formData = transformEventToFormData(event);
+            setFormData(formData);
         }
-        const validation = eventValidationFunction(validationData)
-        setValidation(validation)
-        console.log(validation)
-        
-        // Check if there are validation errors
-        if (Object.keys(validation).length > 0) {
-            setError('Please fix validation errors before submitting')
-            return
+    }, [event, isEditMode, transformEventToFormData, setFormData]);
+
+    // Handle form submission
+    const handleSave = useCallback(async () => {
+        const isValid = validateForm();
+        if (!isValid) {
+            return;
         }
-        
-        setLoading(true)
-        setError(null)
-        setSuccess(null)
+        await submitEvent(eventData);
+    }, [validateForm, submitEvent, eventData]);
 
-        try {
-            // Transform data to match API format
-            const apiData = {
-                title: eventData.title,
-                description: eventData.description,
-                max_attendees: parseInt(eventData.maxAttendance) || 0,
-                start_date: eventData.startDate,
-                end_date: eventData.endDate,
-                start_time: eventData.startTime,
-                end_time: eventData.endTime,
-                street: eventData.street,
-                city: eventData.city,
-                state: eventData.state,
-                postal_code: eventData.zip,
-                organizer: 1, // You might want to get this from auth context
-                organizer_email: user?.email || '',
-                organizer_username: user?.username || '',
-                images: eventData.images
-            }
+    // Combine errors
+    const error = useMemo(() => fetchError || submitError, [fetchError, submitError]);
 
-            console.log('Sending data:', apiData)
-
-            const response = await fetch('http://localhost:8000/api/events/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(apiData)
-            })
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
-            }
-
-            const result = await response.json()
-            console.log('Event created successfully:', result)
-            setSuccess('Event created successfully!')
-            
-            // Reset form
-            setEventData({
-                title: '',
-                description: '',
-                startDate: '',
-                endDate: '',
-                startTime: '',
-                endTime: '',
-                maxAttendance: '',
-                street: '',
-                city: '',
-                state: '',
-                zip: '',
-                images: [],
-            })
-
-        } catch (error) {
-            console.error('Error creating event:', error)
-            setError('Failed to create event. Please try again.')
-        } finally {
-            setLoading(false)
-        }
+    // Show loading spinner when fetching event data in edit mode
+    if (loadingEvent) {
+        return (
+            <Box sx={{ 
+                minHeight: '100vh', 
+                backgroundColor: '#f8f9fa', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+            }}>
+                <CircularProgress />
+            </Box>
+        );
     }
 
     return (
-        <Box sx={{  backgroundColor: '#f8f9fa', py: 2 }}>
+        <Box sx={{ backgroundColor: '#f8f9fa', py: 2 }}>
             <Container maxWidth="lg">
                 <Paper
                     elevation={3}
@@ -154,7 +132,7 @@ const EventCreationPage = () => {
                             mb: 4
                         }}
                     >
-                        Create a New Event
+                        {isEditMode ? 'Edit Event' : 'Create a New Event'}
                     </Typography>
 
                     {/* Success/Error Messages */}
@@ -175,6 +153,8 @@ const EventCreationPage = () => {
                         onImagesChange={handleImagesChange}
                         onSave={handleSave}
                         validation={validation}
+                        isEditMode={isEditMode}
+                        loading={saving}
                     />
                 </Paper>
             </Container>

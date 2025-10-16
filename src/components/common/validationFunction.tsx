@@ -34,7 +34,6 @@ const passwordMatch = (password: string, confirmPassword: string): string => {
 }
 
 export const validationFunction = (data: Data) => {
-    console.log(data)
     let error: Error = {}
     
     error.name = required(data.name, 'Name')

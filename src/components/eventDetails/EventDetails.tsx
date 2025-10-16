@@ -19,6 +19,7 @@ import {
 } from '@mui/icons-material';
 import { Event } from '../../store/eventsSlice';
 import { AuthContext } from '../../auth/authContext';
+import { formatDate, formatTime } from '../../utils';
 
 interface EventDetailsProps {
   event: Event;
@@ -29,54 +30,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
   const { eventId } = useParams<{ eventId: string }>();
   const authContext = useContext(AuthContext);
   const user = authContext?.user;
-  const [remainingSpots, setRemainingSpots] = useState<number | null>(null);
 
-  // Fetch remaining spots for this event
-  useEffect(() => {
-    if (event?.id) {
-      fetchRemainingSpots();
-    }
-  }, [event?.id]);
-
-  const fetchRemainingSpots = async () => {
-    try {
-      // Fetch conversations for this event to count confirmed attendees
-      const response = await fetch(`http://localhost:8000/api/conversations/event/${event?.id}/`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const conversations = data.conversations || data || [];
-        const confirmedAttendees = conversations.filter((c: any) => c.status === 'confirmed').length;
-        const maxAttendees = event?.max_attendees || 0;
-        const remaining = Math.max(0, maxAttendees - confirmedAttendees);
-        setRemainingSpots(remaining);
-      }
-    } catch (err) {
-      console.error('Error fetching remaining spots:', err);
-      // Fallback to max_attendees if fetch fails
-      setRemainingSpots(event?.max_attendees || 0);
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const formatTime = (timeString: string) => {
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
 
   return (
     <Box>
@@ -112,10 +66,11 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
             startIcon={<ManageIcon />}
             onClick={() => navigate(`/event/${eventId}/manage-attendees`)}
             sx={{ 
-              minWidth: 200,
               textTransform: 'none',
               fontWeight: 'bold',
-              borderRadius: 2
+              borderRadius: 2,
+              px: 3,
+              py: 1.5,
             }}
           >
             Manage Attendees
@@ -194,24 +149,21 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
               <PeopleIcon color="primary" sx={{ fontSize: 24 }} />
               <Box>
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
-                  Available Spots
+                  Attendance
                 </Typography>
                 <Typography 
                   variant="body1" 
                   fontWeight="medium"
                   sx={{ 
-                    color: remainingSpots === 0 ? 'error.main' : 'primary.main',
+                    color: event.is_full ? 'error.main' : 'primary.main',
                     fontWeight: 'bold'
                   }}
                 >
-                  {remainingSpots !== null ? 
-                    `${remainingSpots} / ${event.max_attendees} spots available` : 
-                    `${event.max_attendees} spots total`
-                  }
+                  {event.confirmed_attendees || 0} / {event.max_attendees} attendees
                 </Typography>
-                {remainingSpots === 0 && (
-                  <Typography variant="caption" color="error.main" sx={{ fontSize: '0.75rem' }}>
-                    Event is full!
+                {event.available_spots !== undefined && (
+                  <Typography variant="caption" color="text.secondary">
+                    {event.available_spots} spots available
                   </Typography>
                 )}
               </Box>

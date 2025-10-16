@@ -3,7 +3,6 @@ import { Box, Typography } from '@mui/material'
 import {InputField} from '../common/InputeField'
 
 const EventCreationAddress = ( {eventData, handleInputChange, validation = {}}: {eventData: any, handleInputChange: any, validation?: {[key: string]: string}}) => {
-    console.log(eventData)
   return (
     <Box sx={{
       backgroundColor: 'grey.300',

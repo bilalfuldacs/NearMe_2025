@@ -15,7 +15,6 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicRoute from './components/auth/PublicRoute';
 import EventCreationPage from './pages/EventCreationPage';
 import EventDetailsPage from './pages/EventDetailsPage';
-import EventRequestPage from './pages/EventRequestPage';
 import MessagesPage from './pages/MessagesPage';
 import ManageAttendeesPage from './pages/ManageAttendeesPage';
 
@@ -69,26 +68,6 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route
-                path="/messages"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <MessagesPage />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/event/:eventId/manage-attendees"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <ManageAttendeesPage />
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
               <Route 
                 path="/event/:eventId" 
                 element={
@@ -99,10 +78,31 @@ function App() {
                 } 
               />
               <Route 
-                path="/event/:eventId/request" 
+                path="/edit-event/:eventId" 
                 element={
                   <ProtectedRoute>
-                    <EventRequestPage />
+                    <Layout>
+                      <EventCreationPage mode="edit" />
+                    </Layout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/messages" 
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <MessagesPage />
+                    </Layout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/event/:eventId/manage-attendees" 
+                element={
+                  <ProtectedRoute>
+                    <Navbars />
+                    <ManageAttendeesPage />
                   </ProtectedRoute>
                 } 
               />

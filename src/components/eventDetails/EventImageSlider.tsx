@@ -110,6 +110,9 @@ const EventImageSlider: React.FC<EventImageSliderProps> = ({
             height: '100%',
             objectFit: 'cover'
           }}
+          onError={(e) => {
+            console.error('Failed to load image:', currentImage.url);
+          }}
         />
         
         {/* Navigation Arrows */}
@@ -203,6 +206,9 @@ const EventImageSlider: React.FC<EventImageSliderProps> = ({
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover'
+                }}
+                onError={() => {
+                  console.error('Failed to load thumbnail');
                 }}
               />
             </Box>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useContext } from 'react'
 import { 
   Box, 
   Container, 
@@ -15,7 +15,7 @@ import { Link as RouterLink } from 'react-router-dom'
 import { InputField } from '../common/InputeField'
 import SignUpFormSvg from './SignUpFormSvg'
 import { validationFunction } from '../common/validationFunction'
-import useApiHook from '../hookes/useApiHook'
+import { AuthContext } from '../../auth/authContext'
 
 export interface Error {
     [key: string]: string
@@ -24,8 +24,11 @@ export interface Error {
 export const SignupForm = () => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const { data, loading, error, fetchData } = useApiHook()
+  const authContext = useContext(AuthContext)
+  const { signup, loading: authLoading } = authContext || {}
   
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -39,21 +42,51 @@ export const SignupForm = () => {
       ...prev,
       [field]: event.target.value
     }))
+    // Clear errors when user types
+    if (error) setError(null)
+    if (success) setSuccess(null)
   }
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    console.log('Form submitted with data:', formData)
+    // Validate form
+    const validationErrors = validationFunction(formData)
+    setValidation(validationErrors)
     
-    const validation = validationFunction(formData)
-    setValidation(validation)
-    console.log('Validation result:', validation)
-    
-    if (Object.keys(validation).length === 0) {
-      console.log('Sending data to backend...')
-      await fetchData('http://localhost:8000/api/create/', formData)
+    if (Object.keys(validationErrors).length === 0) {
+      setError(null)
+      setSuccess(null)
+      
+      try {
+        if (!signup) {
+          throw new Error('Authentication context not available');
+        }
+        
+        // Call signup from context (which uses authService)
+        await signup({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword
+        });
+        
+        setSuccess('Signup successful! Redirecting...');
+        
+        // PublicRoute will automatically redirect to home page
+        
+      } catch (error: any) {
+        console.error('SignupForm: Signup failed', error);
+        
+        // Display user-friendly error messages
+        if (error.message?.includes('email')) {
+          setError('Email already exists. Please use a different email.');
+        } else if (error.message?.includes('400')) {
+          setError('Invalid data. Please check your information.');
+        } else {
+          setError(error.message || 'Signup failed. Please try again.');
+        }
+      }
     } else {
-      console.log('Validation failed, not sending data')
     }
   }
 
@@ -185,8 +218,7 @@ export const SignupForm = () => {
                   type="submit" 
                   variant="contained" 
                   size="large"
-                  disabled={loading}
-                  onClick={() => console.log('Sign Up button clicked')}
+                  disabled={authLoading}
                   sx={{ 
                     mt: 2, 
                     py: 1.5,
@@ -196,7 +228,7 @@ export const SignupForm = () => {
                     borderRadius: 2
                   }}
                 >
-                  {loading ? 'Signing Up...' : 'Sign Up'}
+                  {authLoading ? 'Signing Up...' : 'Sign Up'}
                 </Button>
                 
                 <Box sx={{ textAlign: 'center', mt: 2 }}>
@@ -214,15 +246,15 @@ export const SignupForm = () => {
                 </Box>
                 
                 {/* Success/Error Messages */}
-                {data && (
+                {success && (
                   <Alert severity="success" sx={{ mt: 2 }}>
-                    Signup successful! Welcome aboard! 🎉
+                    {success}
                   </Alert>
                 )}
                 
                 {error && (
                   <Alert severity="error" sx={{ mt: 2 }}>
-                    Signup failed. Please try again.
+                    {error}
                   </Alert>
                 )}
               </Box>

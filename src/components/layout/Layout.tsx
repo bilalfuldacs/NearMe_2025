@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box } from '@mui/material';
+import { useLocation } from 'react-router-dom';
 import Navbars from '../navbar/Navbar';
 import SearchFilter from '../common/SearchFilter';
 
@@ -8,27 +9,34 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const location = useLocation();
+  
+  // Hide search filter on messages page
+  const showSearchFilter = location.pathname !== '/messages';
+
   const handleSearch = (query: string) => {
-    console.log('Search query:', query);
+    // TODO: Implement search functionality
   };
 
   const handleDateFilter = (date: string) => {
-    console.log('Date filter:', date);
+    // TODO: Implement date filter functionality
   };
 
   const handleCategoryFilter = (category: string) => {
-    console.log('Category filter:', category);
+    // TODO: Implement category filter functionality
   };
 
   return (
     <Box>
       <Navbars />
       <hr/>
-      <SearchFilter 
-        onSearch={handleSearch}
-        onDateFilter={handleDateFilter}
-        onCategoryFilter={handleCategoryFilter}
-      />
+      {showSearchFilter && (
+        <SearchFilter 
+          onSearch={handleSearch}
+          onDateFilter={handleDateFilter}
+          onCategoryFilter={handleCategoryFilter}
+        />
+      )}
       {children}
     </Box>
   );
