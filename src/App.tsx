@@ -17,6 +17,7 @@ import EventCreationPage from './pages/EventCreationPage';
 import EventDetailsPage from './pages/EventDetailsPage';
 import MessagesPage from './pages/MessagesPage';
 import ManageAttendeesPage from './pages/ManageAttendeesPage';
+import ProfilePage from './pages/ProfilePage';
 
 const theme = createTheme({
   palette: {
@@ -93,6 +94,16 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <MessagesPage />
+                    </Layout>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/profile" 
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ProfilePage />
                     </Layout>
                   </ProtectedRoute>
                 } 

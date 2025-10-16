@@ -22,5 +22,8 @@ export type {
 export { categoriesService } from './categoriesService';
 export type { Category } from './categoriesService';
 
+export { profileService } from './profileService';
+export type { UserProfile, UpdateProfileData, ChangePasswordData } from './profileService';
+
 export { default as apiClient, apiClientNoAuth } from './apiClient';
 

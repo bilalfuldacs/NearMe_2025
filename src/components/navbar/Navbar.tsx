@@ -29,6 +29,7 @@ import { useDispatch } from 'react-redux';
 import { AuthContext } from '../../auth/authContext';
 import { AppDispatch } from '../../store/store';
 import { setEvents } from '../../store/eventsSlice';
+import { getInitials } from '../../utils';
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
@@ -181,7 +182,7 @@ const Navbar: React.FC = () => {
                 fontSize: '0.875rem'
               }}
             >
-              {user?.username?.charAt(0).toUpperCase() || 'U'}
+              {getInitials(user?.name || user?.username || user?.email || 'User')}
             </Avatar>
           </IconButton>
 
@@ -212,7 +213,7 @@ const Navbar: React.FC = () => {
                 <Person fontSize="small" />
               </ListItemIcon>
               <ListItemText 
-                primary={user?.username || 'User'}
+                primary={user?.username || user?.name || 'User'}
                 secondary={user?.email}
                 primaryTypographyProps={{
                   fontSize: '0.875rem',
@@ -225,6 +226,17 @@ const Navbar: React.FC = () => {
               />
             </MenuItem>
             <Divider />
+            <MenuItem 
+              onClick={() => {
+                handleMenuClose();
+                navigate('/profile');
+              }}
+            >
+              <ListItemIcon>
+                <AccountCircle fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>My Profile</ListItemText>
+            </MenuItem>
             <MenuItem onClick={handleLogout}>
               <ListItemIcon>
                 <Logout fontSize="small" />

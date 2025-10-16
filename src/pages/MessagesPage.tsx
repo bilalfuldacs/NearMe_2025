@@ -196,6 +196,8 @@ const MessagesPage: React.FC = () => {
               display: { xs: selectedConversation ? 'none' : 'flex', md: 'flex' },
               flexDirection: 'column',
               backgroundColor: 'white',
+              minHeight: 0,
+              overflow: 'hidden',
             }}
           >
             {/* Header */}
@@ -231,7 +233,13 @@ const MessagesPage: React.FC = () => {
 
             {/* Conversations List */}
       {!loading && !error && (
-              <List sx={{ flex: 1, overflowY: 'auto', p: 0 }}>
+              <List sx={{ 
+                flex: 1, 
+                overflowY: 'auto', 
+                p: 0,
+                minHeight: 0,
+                maxHeight: 'calc(100vh - 200px)' // Constrain height for scrolling
+              }}>
                 {conversations.length === 0 ? (
                   <Box sx={{ textAlign: 'center', p: 4 }}>
                     <Typography variant="body2" color="text.secondary">
@@ -276,7 +284,7 @@ const MessagesPage: React.FC = () => {
                             >
                               <Avatar sx={{ bgcolor: 'primary.main' }}>
                                 {getInitials(conversation.other_person.name)}
-                              </Avatar>
+                    </Avatar>
                             </Badge>
                   </ListItemAvatar>
                   <ListItemText
@@ -325,7 +333,7 @@ const MessagesPage: React.FC = () => {
                               }}
                             >
                               {formatTimeAgo(conversation.last_message.created_at)}
-                            </Typography>
+                        </Typography>
                               </Box>
                             }
                           />
@@ -346,6 +354,8 @@ const MessagesPage: React.FC = () => {
               display: { xs: !selectedConversation ? 'none' : 'flex', md: 'flex' },
               flexDirection: 'column',
               backgroundColor: 'white',
+              minHeight: 0,
+              overflow: 'hidden',
             }}
           >
             {loadingMessages ? (
@@ -411,8 +421,15 @@ const MessagesPage: React.FC = () => {
                   />
                 )}
 
-                {/* Conversation Messages */}
-                <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                {/* Conversation Messages - Constrained height container */}
+                <Box sx={{ 
+                  flex: 1, 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  minHeight: 0, 
+                  overflow: 'hidden',
+                  maxHeight: 'calc(100vh - 200px)' // Constrain the height
+                }}>
                   <ConversationView
                     messages={messages}
                     currentUserEmail={currentUserEmail}

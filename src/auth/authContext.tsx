@@ -28,6 +28,7 @@ interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<void>;
   signup: (credentials: SignupCredentials) => Promise<void>;
   logout: () => void;
+  updateUser: (userData: Partial<User>) => void;
   getAccessToken: () => string | null;
   getRefreshToken: () => string | null;
   refreshToken: () => Promise<void>;
@@ -158,6 +159,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   /**
+   * Update user data in context and localStorage
+   */
+  const updateUser = (userData: Partial<User>): void => {
+    const updatedUser = { ...state.user, ...userData } as User;
+    authService.storeUser(updatedUser);
+    dispatch({ type: "SET_USER", payload: updatedUser });
+  };
+
+  /**
    * Get access token
    */
   const getAccessToken = (): string | null => {
@@ -205,6 +215,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         login,
         signup,
         logout,
+        updateUser,
         getAccessToken,
         getRefreshToken,
         refreshToken,

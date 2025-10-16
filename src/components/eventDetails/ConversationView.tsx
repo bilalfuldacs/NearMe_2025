@@ -55,7 +55,14 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      flex: 1, 
+      minHeight: 0,
+      height: '100%',
+      maxHeight: '100%'
+    }}>
       {/* Messages Area */}
       <Box
         sx={{
@@ -63,6 +70,8 @@ const ConversationView: React.FC<ConversationViewProps> = ({
           overflowY: 'auto',
           p: 2,
           backgroundColor: 'grey.50',
+          minHeight: 0,
+          maxHeight: 'calc(100% - 80px)', // Reserve space for input
         }}
       >
         {messages.length === 0 ? (

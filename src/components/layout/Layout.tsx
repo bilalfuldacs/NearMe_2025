@@ -16,8 +16,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   
-  // Hide search filter on messages page
-  const showSearchFilter = location.pathname !== '/messages';
+  // Hide search filter on messages and profile pages
+  const showSearchFilter = location.pathname !== '/messages' && location.pathname !== '/profile';
 
   // State for filters
   const [filters, setFilters] = useState<EventFilters>({});
