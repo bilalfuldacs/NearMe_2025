@@ -34,6 +34,7 @@ export const useEventSubmit = ({ isEditMode, eventId, user, onSuccess }: UseEven
             city: formData.city,
             state: formData.state,
             postal_code: formData.zip,
+            category: formData.category ? parseInt(formData.category) : undefined,
             organizer_id: user?.id,
             organizer_email: user?.email || '',
             organizer_username: user?.username || user?.name || '',

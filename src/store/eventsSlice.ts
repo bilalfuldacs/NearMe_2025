@@ -17,6 +17,10 @@ export interface Event {
   city: string;
   state: string;
   postal_code?: string;
+  category?: number;
+  category_name?: string;
+  category_icon?: string;
+  category_description?: string;
   organizer_name: string;
   organizer_email: string;
   organizer_id?: number;

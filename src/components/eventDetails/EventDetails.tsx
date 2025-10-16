@@ -15,7 +15,8 @@ import {
   AccessTime as TimeIcon,
   People as PeopleIcon,
   Person as PersonIcon,
-  ManageAccounts as ManageIcon
+  ManageAccounts as ManageIcon,
+  Category as CategoryIcon
 } from '@mui/icons-material';
 import { Event } from '../../store/eventsSlice';
 import { AuthContext } from '../../auth/authContext';
@@ -48,6 +49,33 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
           <Chip label="Inactive" color="error" size="small" />
         )}
       </Stack>
+
+      {/* Category */}
+      {event.category_name && (
+        <Box sx={{ mb: 3 }}>
+          <Chip 
+            icon={event.category_icon ? undefined : <CategoryIcon />}
+            label={event.category_icon ? `${event.category_icon} ${event.category_name}` : event.category_name}
+            color="primary"
+            variant="outlined"
+            sx={{ 
+              fontSize: '0.95rem',
+              fontWeight: 'bold',
+              py: 2.5,
+              px: 1.5,
+              borderRadius: 2,
+              '& .MuiChip-label': {
+                px: 1
+              }
+            }}
+          />
+          {event.category_description && (
+            <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary', ml: 1 }}>
+              {event.category_description}
+            </Typography>
+          )}
+        </Box>
+      )}
 
       {/* Description */}
       <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>

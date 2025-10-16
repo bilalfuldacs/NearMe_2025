@@ -13,6 +13,7 @@ export interface EventFormData {
     city: string;
     state: string;
     zip: string;
+    category: string;
     images: string[];
 }
 
@@ -28,6 +29,7 @@ export const INITIAL_EVENT_DATA: EventFormData = {
     city: '',
     state: '',
     zip: '',
+    category: '',
     images: [],
 };
 

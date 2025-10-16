@@ -1,14 +1,16 @@
 import React, { useState, useRef } from 'react';
-import { Box, Typography, Button, IconButton} from '@mui/material';
+import { Box, Typography, Button, IconButton, Alert } from '@mui/material';
 import { CloudUpload, Delete } from '@mui/icons-material';
 import { Grid } from '@mui/material';
 
 interface ImagePickerProps {
   images: string[];
   onImagesChange: (images: string[]) => void;
+  error?: boolean;
+  helperText?: string;
 }
 
-const EventCreationImages: React.FC<ImagePickerProps> = ({ images, onImagesChange }) => {
+const EventCreationImages: React.FC<ImagePickerProps> = ({ images, onImagesChange, error, helperText }) => {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -81,6 +83,13 @@ const EventCreationImages: React.FC<ImagePickerProps> = ({ images, onImagesChang
         Event Images
       </Typography>
 
+      {/* Error Message */}
+      {error && helperText && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {helperText}
+        </Alert>
+      )}
+
       {/* Upload Area */}
       <Box
         onDragOver={handleDragOver}
@@ -88,17 +97,17 @@ const EventCreationImages: React.FC<ImagePickerProps> = ({ images, onImagesChang
         onDrop={handleDrop}
         onClick={openFileDialog}
         sx={{
-          border: `2px dashed ${dragOver ? '#007bff' : '#ddd'}`,
+          border: `2px dashed ${error ? '#d32f2f' : dragOver ? '#007bff' : '#ddd'}`,
           borderRadius: 2,
           p: 4,
           textAlign: 'center',
           cursor: 'pointer',
-          backgroundColor: dragOver ? '#f8f9ff' : '#fafafa',
+          backgroundColor: error ? '#ffebee' : dragOver ? '#f8f9ff' : '#fafafa',
           transition: 'all 0.3s ease',
           mb: 3,
           '&:hover': {
-            borderColor: '#007bff',
-            backgroundColor: '#f8f9ff'
+            borderColor: error ? '#d32f2f' : '#007bff',
+            backgroundColor: error ? '#ffebee' : '#f8f9ff'
           }
         }}
       >

@@ -6,6 +6,8 @@ import CardContent from '@mui/material/CardContent';
 import CardMedia from '@mui/material/CardMedia';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import Box from '@mui/material/Box';
 import { Event } from '../../store/eventsSlice';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -38,18 +40,31 @@ export default function MediaCard({Image, event}: EventCardProps) {
         title={event?.title || "Event Image"}
       />
       <CardContent sx={{ flexGrow: 1, pb: 1 }}>
-        <Typography 
-          gutterBottom 
-          variant="h6" 
-          component="div"
-          sx={{ 
-            fontWeight: 'bold',
-            color: 'primary.main',
-            mb: 1
-          }}
-        >
-          {event?.title || "Event Title"}
-        </Typography>
+        <Box sx={{ mb: 1 }}>
+          <Typography 
+            variant="h6" 
+            component="div"
+            sx={{ 
+              fontWeight: 'bold',
+              color: 'primary.main',
+              mb: 1
+            }}
+          >
+            {event?.title || "Event Title"}
+          </Typography>
+          {event?.category_name && (
+            <Chip 
+              label={event.category_icon ? `${event.category_icon} ${event.category_name}` : event.category_name}
+              size="small"
+              sx={{ 
+                fontSize: '0.7rem',
+                height: 20,
+                fontWeight: 'bold',
+                mb: 1
+              }}
+            />
+          )}
+        </Box>
         <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
           Hosted by {event?.organizer_name || "Organizer"}<br/>
           {event?.max_attendees ? `${event.max_attendees} attendees max` : "Limited spots"}, {event?.city || "Location"}<br/>

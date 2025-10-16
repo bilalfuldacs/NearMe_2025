@@ -5,7 +5,7 @@ export { authService } from './authService';
 export type { LoginCredentials, SignupCredentials, AuthResponse } from './authService';
 
 export { eventsService } from './eventsService';
-export type { CreateEventData, UpdateEventData } from './eventsService';
+export type { CreateEventData, UpdateEventData, EventFilters } from './eventsService';
 
 export { conversationsService } from './conversationsService';
 export type { 
@@ -18,6 +18,9 @@ export type {
   ConversationsListResponse,
   ConversationMessagesResponse
 } from './conversationsService';
+
+export { categoriesService } from './categoriesService';
+export type { Category } from './categoriesService';
 
 export { default as apiClient, apiClientNoAuth } from './apiClient';
 

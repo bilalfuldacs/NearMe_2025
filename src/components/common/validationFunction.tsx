@@ -108,10 +108,20 @@ export const eventValidationFunction = (data: Data) => {
     error.state = required(data.state, 'State/Province')
     error.zip = required(data.zip, 'Postal code')
     
+    // Category validation - category is required
+    if (!data.category || data.category.trim() === '') {
+        error.category = 'Please select a category for your event'
+    }
+    
+    // Image validation - at least one image required
+    if (!data.images || data.images.length === 0 || (typeof data.images === 'string' && data.images.trim() === '')) {
+        error.images = 'At least one event image is required'
+    }
+    
     // Date range validation
     const dateRangeError = dateRange(data.startDate, data.endDate)
     if (dateRangeError) {
-        error.endDate = dateRangeError // Show error on end date field
+        error.endDate = dateRangeError
     }
     
     // Remove empty error messages

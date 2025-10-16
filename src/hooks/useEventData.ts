@@ -95,6 +95,7 @@ export const useEventData = ({ eventId, isEditMode, userEmail, onUnauthorized }:
             city: event.city || '',
             state: event.state || '',
             zip: event.postal_code || '',
+            category: event.category?.toString() || '',
             images: base64Images,
         };
     }, []);

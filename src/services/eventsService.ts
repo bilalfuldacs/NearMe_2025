@@ -16,6 +16,7 @@ export interface CreateEventData {
   city: string;
   state: string;
   postal_code: string;
+  category?: number;
   organizer_id?: number;
   organizer_email: string;
   organizer_username?: string;
@@ -56,6 +57,10 @@ const transformEvent = (event: any): Event => {
     city: event.location?.city || event.city || '',
     state: event.location?.state || event.state || '',
     postal_code: event.location?.postal_code || event.postal_code || '',
+    category: event.category,
+    category_name: event.category_details?.name || event.category_name,
+    category_icon: event.category_details?.icon,
+    category_description: event.category_details?.description,
     max_attendees: event.max_attendees,
     confirmed_attendees: event.confirmed_attendees || 0,
     available_spots: event.available_spots || (event.max_attendees - (event.confirmed_attendees || 0)),
@@ -76,14 +81,60 @@ const transformEvent = (event: any): Event => {
   };
 };
 
+export interface EventFilters {
+  category?: string;     // Filter by category ID
+  search?: string;       // Search across title, description, city, state, category name
+  start_date?: string;   // Filter: event.start_date >= this date (YYYY-MM-DD)
+  end_date?: string;     // Filter: event.start_date <= this date (YYYY-MM-DD)
+}
+
 class EventsService {
   /**
-   * Get all events (public endpoint)
+   * Get all events with optional filters (public endpoint)
+   * 
+   * Search functionality:
+   * - Backend searches across: title, description, city, state, category__name
+   * - Case-insensitive search
+   * - Returns events matching ANY of these fields
+   * 
+   * Date filtering:
+   * - start_date: Returns events where event.start_date >= start_date
+   * - end_date: Returns events where event.start_date <= end_date
+   * - Both: Returns events where start_date <= event.start_date <= end_date
+   * 
+   * Examples:
+   * - getAllEvents({ search: 'sports' }) → Events with "sports" in any field
+   * - getAllEvents({ category: '17' }) → Events in category 17
+   * - getAllEvents({ start_date: '2025-11-15' }) → Events starting on/after Nov 15
+   * - getAllEvents({ end_date: '2025-11-30' }) → Events starting on/before Nov 30
+   * - getAllEvents({ start_date: '2025-11-01', end_date: '2025-11-30' }) → Events in November
+   * - getAllEvents({ search: 'beach', category: '17', start_date: '2025-11-15' }) → Combined filters
    */
-  async getAllEvents(): Promise<Event[]> {
+  async getAllEvents(filters?: EventFilters): Promise<Event[]> {
     try {
-      // Use apiClientNoAuth since this is a public endpoint
-      const response = await apiClient.get('/events/');
+      // Build query parameters
+      const params: any = {};
+      
+      if (filters?.category) {
+        params.category = filters.category;
+      }
+      
+      // Backend searches in: title, description, city, state, category__name
+      if (filters?.search) {
+        params.search = filters.search;
+      }
+      
+      // Date range filters
+      if (filters?.start_date) {
+        params.start_date = filters.start_date;
+      }
+      
+      if (filters?.end_date) {
+        params.end_date = filters.end_date;
+      }
+
+      // Use apiClient with query parameters
+      const response = await apiClient.get('/events/', { params });
       
       // Handle paginated response
       const eventsData = response.data.results || response.data;

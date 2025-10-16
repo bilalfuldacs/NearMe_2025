@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import  {InputField}  from '../common/InputeField';
-import { Box, Grid, Button } from '@mui/material';
+import { Box, Grid, Button, FormControl, Select, MenuItem, FormHelperText, Typography } from '@mui/material';
 import EventCreationAddress from './EventCreationAddress';
 import EventCreationImages from './EventCreationImages';
+import { categoriesService, Category } from '../../services';
 
 interface EventCreationProps {
   eventData: any;
@@ -23,6 +24,37 @@ const EventCreation: React.FC<EventCreationProps> = ({
   isEditMode = false,
   loading = false
 }) => {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoadingCategories(true);
+      try {
+        const fetchedCategories = await categoriesService.getAllCategories();
+        setCategories(fetchedCategories);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  const handleCategoryChange = (event: any) => {
+    // Create a synthetic event that matches React.ChangeEvent<HTMLInputElement>
+    const syntheticEvent = {
+      target: {
+        name: 'category',
+        value: event.target.value
+      }
+    } as React.ChangeEvent<HTMLInputElement>;
+    handleInputChange(syntheticEvent);
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       <InputField 
@@ -45,16 +77,61 @@ const EventCreation: React.FC<EventCreationProps> = ({
         error={!!validation.description}
         helperText={validation.description}
       />
-      <InputField 
-        name="maxAttendance" 
-        label="Max Attendance" 
-        type="number" 
-        value={eventData.maxAttendance} 
-        onChange={handleInputChange} 
-        placeholder="e.g., 5"
-        error={!!validation.maxAttendance}
-        helperText={validation.maxAttendance}
-      />
+
+      {/* Max Attendees and Category - Two Columns */}
+      <Grid container spacing={3}>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <InputField 
+            name="maxAttendance" 
+            label="Max Attendance" 
+            type="number" 
+            value={eventData.maxAttendance} 
+            onChange={handleInputChange} 
+            placeholder="e.g., 5"
+            error={!!validation.maxAttendance}
+            helperText={validation.maxAttendance}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <Typography variant="h6">Category</Typography>
+          <FormControl 
+            fullWidth 
+            error={!!validation.category}
+            disabled={loadingCategories}
+          >
+            <Select
+              id="category-select"
+              value={eventData.category || ''}
+              displayEmpty
+              onChange={handleCategoryChange}
+              sx={{
+                borderRadius: 2,
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: validation.category ? 'error.main' : undefined,
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#007bff',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#007bff',
+                },
+              }}
+            >
+              <MenuItem value="">
+                <em>{loadingCategories ? 'Loading categories...' : 'Select a category'}</em>
+              </MenuItem>
+              {categories.map((category) => (
+                <MenuItem key={category.id} value={category.id.toString()}>
+                  {category.icon ? `${category.icon} ` : ''}{category.name}
+                </MenuItem>
+              ))}
+            </Select>
+            {validation.category && (
+              <FormHelperText error>{validation.category}</FormHelperText>
+            )}
+          </FormControl>
+        </Grid>
+      </Grid>
       {/* Date and Time Section - Two Columns */}
       <Grid container spacing={3}>
         <Grid size={{ xs: 6 }}>
@@ -110,7 +187,12 @@ const EventCreation: React.FC<EventCreationProps> = ({
         </Grid>
       </Grid>
       <EventCreationAddress eventData={eventData} handleInputChange={handleInputChange} validation={validation} />
-      <EventCreationImages images={eventData.images} onImagesChange={onImagesChange} />
+      <EventCreationImages 
+        images={eventData.images} 
+        onImagesChange={onImagesChange}
+        error={!!validation.images}
+        helperText={validation.images}
+      />
       
       {/* Save Button */}
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>

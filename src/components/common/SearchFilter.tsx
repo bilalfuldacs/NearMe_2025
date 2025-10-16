@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   TextField,
@@ -8,39 +8,22 @@ import {
   InputLabel,
   Container,
   InputAdornment,
-  Divider
+  Divider,
+  IconButton,
+  Tooltip
 } from '@mui/material';
-import { Search as SearchIcon, KeyboardArrowDown as ArrowDownIcon } from '@mui/icons-material';
+import { 
+  Search as SearchIcon, 
+  KeyboardArrowDown as ArrowDownIcon,
+  Clear as ClearIcon 
+} from '@mui/icons-material';
+import { categoriesService, Category } from '../../services';
 
 interface SearchFilterProps {
   onSearch?: (query: string) => void;
-  onDateFilter?: (date: string) => void;
-  onCategoryFilter?: (category: string) => void;
+  onDateFilter?: (startDate: string, endDate: string) => void;
+  onCategoryFilter?: (categoryId: string) => void;
 }
-
-const categories = [
-  'Any Category',
-  'Technology',
-  'Business',
-  'Education',
-  'Entertainment',
-  'Sports',
-  'Health',
-  'Food & Drink',
-  'Art & Culture',
-  'Networking'
-];
-
-const dateOptions = [
-  'Date',
-  'Today',
-  'Tomorrow',
-  'This Week',
-  'Next Week',
-  'This Month',
-  'Next Month',
-  'Custom Range'
-];
 
 export const SearchFilter: React.FC<SearchFilterProps> = ({
   onSearch,
@@ -48,8 +31,28 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({
   onCategoryFilter
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDate, setSelectedDate] = useState('Date');
-  const [selectedCategory, setSelectedCategory] = useState('Any Category');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoadingCategories(true);
+      try {
+        const fetchedCategories = await categoriesService.getAllCategories();
+        setCategories(fetchedCategories);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
@@ -57,16 +60,28 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({
     onSearch?.(value);
   };
 
-  const handleDateChange = (event: any) => {
+  const handleStartDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
-    setSelectedDate(value);
-    onDateFilter?.(value);
+    setStartDate(value);
+    onDateFilter?.(value, endDate);
+  };
+
+  const handleEndDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setEndDate(value);
+    onDateFilter?.(startDate, value);
   };
 
   const handleCategoryChange = (event: any) => {
     const value = event.target.value;
     setSelectedCategory(value);
     onCategoryFilter?.(value);
+  };
+
+  const handleClearDates = () => {
+    setStartDate('');
+    setEndDate('');
+    onDateFilter?.('', '');
   };
 
   return (
@@ -90,7 +105,7 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({
             <TextField
               fullWidth
               variant="outlined"
-              placeholder="Search events"
+              placeholder="Search events by title, description, location, or category..."
               value={searchQuery}
               onChange={handleSearchChange}
               sx={{
@@ -123,39 +138,82 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({
             />
           </Box>
 
-          {/* Center - Date Filter */}
-          <FormControl sx={{ minWidth: '180px' }}>
-            <Select
-              value={selectedDate}
-              onChange={handleDateChange}
-              displayEmpty
-              sx={{
-                borderRadius: 2,
-                backgroundColor: '#f8f9fa',
-                height: '48px',
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#e0e0e0',
-                },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#007bff',
-                },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#007bff',
-                },
-                '& .MuiSelect-select': {
-                  py: 1.5,
-                  fontSize: '1rem',
-                }
+          {/* Center - Date Range Filters */}
+          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+            <TextField
+              type="date"
+              label="From Date"
+              value={startDate}
+              onChange={handleStartDateChange}
+              placeholder="Events from..."
+              InputLabelProps={{
+                shrink: true,
               }}
-              IconComponent={ArrowDownIcon}
-            >
-              {dateOptions.map((option) => (
-                <MenuItem key={option} value={option}>
-                  {option}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              sx={{
+                minWidth: '155px',
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  backgroundColor: '#f8f9fa',
+                  height: '48px',
+                  '& fieldset': {
+                    borderColor: '#e0e0e0',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#007bff',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#007bff',
+                  },
+                },
+              }}
+            />
+            <TextField
+              type="date"
+              label="To Date"
+              value={endDate}
+              onChange={handleEndDateChange}
+              placeholder="Events until..."
+              InputLabelProps={{
+                shrink: true,
+              }}
+              inputProps={{
+                min: startDate || undefined,
+              }}
+              sx={{
+                minWidth: '155px',
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  backgroundColor: '#f8f9fa',
+                  height: '48px',
+                  '& fieldset': {
+                    borderColor: '#e0e0e0',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#007bff',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#007bff',
+                  },
+                },
+              }}
+            />
+            {(startDate || endDate) && (
+              <Tooltip title="Clear dates">
+                <IconButton
+                  size="small"
+                  onClick={handleClearDates}
+                  sx={{
+                    backgroundColor: '#f8f9fa',
+                    '&:hover': {
+                      backgroundColor: '#e9ecef',
+                    },
+                  }}
+                >
+                  <ClearIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
 
           {/* Right Side - Category Filter (aligned with notification icon) */}
           <FormControl sx={{ minWidth: '180px' }}>
@@ -163,6 +221,7 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({
               value={selectedCategory}
               onChange={handleCategoryChange}
               displayEmpty
+              disabled={loadingCategories}
               sx={{
                 borderRadius: 2,
                 backgroundColor: '#f8f9fa',
@@ -183,9 +242,12 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({
               }}
               IconComponent={ArrowDownIcon}
             >
+              <MenuItem value="">
+                {loadingCategories ? 'Loading...' : 'All Categories'}
+              </MenuItem>
               {categories.map((category) => (
-                <MenuItem key={category} value={category}>
-                  {category}
+                <MenuItem key={category.id} value={category.id.toString()}>
+                  {category.name}
                 </MenuItem>
               ))}
             </Select>
