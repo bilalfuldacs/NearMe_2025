@@ -7,6 +7,7 @@ import {
   Paper,
   Chip,
   Avatar,
+  Button,
 } from '@mui/material';
 import { Send as SendIcon } from '@mui/icons-material';
 import { Message } from '../../services/conversationsService';
@@ -52,6 +53,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
       handleSend();
     }
   };
+
 
 
   return (
@@ -179,13 +181,15 @@ const ConversationView: React.FC<ConversationViewProps> = ({
       {/* Input Area */}
       <Box
         sx={{
-          p: 2,
+          p: { xs: 1.5, sm: 2 },
           backgroundColor: 'white',
           borderTop: 1,
           borderColor: 'divider',
+          position: 'relative',
+          zIndex: 1, // Ensure input area is above other content
         }}
       >
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
           <TextField
             fullWidth
             multiline
@@ -200,26 +204,51 @@ const ConversationView: React.FC<ConversationViewProps> = ({
             sx={{
               '& .MuiOutlinedInput-root': {
                 borderRadius: 3,
+                fontSize: { xs: '16px', sm: '14px' }, // Prevents zoom on iOS
+              },
+              '& .MuiInputBase-input': {
+                fontSize: { xs: '16px', sm: '14px' },
               },
             }}
           />
-          <IconButton
+          <Button
+            variant="contained"
             color="primary"
             onClick={handleSend}
             disabled={!newMessage.trim() || sending}
             sx={{
-              backgroundColor: 'primary.main',
-              color: 'white',
+              minWidth: { xs: 56, sm: 48 },
+              minHeight: { xs: 56, sm: 48 },
+              px: { xs: 2, sm: 1 },
+              borderRadius: 3,
+              textTransform: 'none',
+              fontSize: '1rem',
+              fontWeight: 600,
+              boxShadow: 'none',
               '&:hover': {
+                boxShadow: 'none',
+                backgroundColor: 'primary.dark',
+              },
+              '&:active': {
+                transform: 'scale(0.95)',
                 backgroundColor: 'primary.dark',
               },
               '&:disabled': {
                 backgroundColor: 'grey.300',
+                color: 'grey.500',
+                transform: 'none',
               },
+              // Better touch target for mobile
+              '@media (max-width: 600px)': {
+                minWidth: 56,
+                minHeight: 56,
+                px: 2,
+                py: 1,
+              }
             }}
           >
-            <SendIcon />
-          </IconButton>
+            <SendIcon fontSize="small" sx={{ ml: 0.5 }} />
+          </Button>
         </Box>
         <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
           Press Enter to send, Shift+Enter for new line
