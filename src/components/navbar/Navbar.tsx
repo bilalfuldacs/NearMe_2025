@@ -12,7 +12,11 @@ import {
   Divider,
   ListItemIcon,
   ListItemText,
-  Badge
+  Badge,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton
 } from '@mui/material';
 import {
   Home,
@@ -22,7 +26,8 @@ import {
   Message,
   AccountCircle,
   Logout,
-  Person
+  Person,
+  Menu as MenuIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -41,6 +46,7 @@ const Navbar: React.FC = () => {
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isMenuOpen = Boolean(anchorEl);
   const isNotificationOpen = Boolean(notificationAnchor);
@@ -59,6 +65,14 @@ const Navbar: React.FC = () => {
 
   const handleNotificationMenuClose = () => {
     setNotificationAnchor(null);
+  };
+
+  const handleMobileMenuToggle = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const handleMobileMenuClose = () => {
+    setMobileMenuOpen(false);
   };
 
   const handleLogout = () => {
@@ -99,25 +113,42 @@ const Navbar: React.FC = () => {
           justifyContent: 'space-between'
         }}
       >
-        {/* Logo */}
-        <Typography
-          variant="h5"
-          component={RouterLink}
-          to="/"
-          sx={{
-            fontWeight: 700,
-            color: '#1976d2',
-            textDecoration: 'none',
-            fontSize: { xs: '1.25rem', sm: '1.5rem' },
-            '&:hover': {
-              color: '#1565c0'
-            }
-          }}
-        >
-          NearMe
-        </Typography>
+        {/* Left Side - Mobile Menu + Logo */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Mobile Menu Button */}
+          <IconButton
+            onClick={handleMobileMenuToggle}
+            sx={{
+              display: { xs: 'block', md: 'none' },
+              color: '#666',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)'
+              }
+            }}
+          >
+            <MenuIcon />
+          </IconButton>
 
-        {/* Navigation Links */}
+          {/* Logo */}
+          <Typography
+            variant="h5"
+            component={RouterLink}
+            to="/"
+            sx={{
+              fontWeight: 700,
+              color: '#1976d2',
+              textDecoration: 'none',
+              fontSize: { xs: '1.25rem', sm: '1.5rem' },
+              '&:hover': {
+                color: '#1565c0'
+              }
+            }}
+          >
+            NearMe
+          </Typography>
+        </Box>
+
+        {/* Desktop Navigation Links */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>
           {navigationItems.map((item) => (
             <Button
@@ -285,6 +316,130 @@ const Navbar: React.FC = () => {
           </Menu>
         </Box>
     </Toolbar>
+
+    {/* Mobile Navigation Drawer */}
+    <Drawer
+      anchor="left"
+      open={mobileMenuOpen}
+      onClose={handleMobileMenuClose}
+      sx={{
+        display: { xs: 'block', md: 'none' },
+        '& .MuiDrawer-paper': {
+          boxSizing: 'border-box',
+          width: 280,
+          backgroundColor: '#ffffff',
+          borderRight: '1px solid #e0e0e0'
+        }
+      }}
+    >
+      <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
+          Navigation
+        </Typography>
+      </Box>
+      
+      <List sx={{ pt: 2 }}>
+        {navigationItems.map((item) => (
+          <ListItem key={item.path} disablePadding>
+            <ListItemButton
+              component={RouterLink}
+              to={item.path}
+              onClick={handleMobileMenuClose}
+              sx={{
+                py: 1.5,
+                px: 3,
+                backgroundColor: isActive(item.path) ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
+                '&:hover': {
+                  backgroundColor: isActive(item.path) 
+                    ? 'rgba(25, 118, 210, 0.12)' 
+                    : 'rgba(0, 0, 0, 0.04)'
+                }
+              }}
+            >
+              <ListItemIcon sx={{ color: isActive(item.path) ? '#1976d2' : '#666' }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText 
+                primary={item.label}
+                primaryTypographyProps={{
+                  color: isActive(item.path) ? '#1976d2' : '#333',
+                  fontWeight: isActive(item.path) ? 600 : 400
+                }}
+              />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+
+      <Divider sx={{ my: 2 }} />
+
+      {/* Mobile Profile Section */}
+      <Box sx={{ px: 3, py: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <Avatar
+            sx={{
+              width: 40,
+              height: 40,
+              backgroundColor: '#1976d2',
+              fontSize: '1rem'
+            }}
+          >
+            {getInitials(user?.name || user?.username || user?.email || 'User')}
+          </Avatar>
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              {user?.username || user?.name || 'User'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {user?.email}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Button
+          fullWidth
+          variant="outlined"
+          startIcon={<AccountCircle />}
+          onClick={() => {
+            handleMobileMenuClose();
+            navigate('/profile');
+          }}
+          sx={{
+            mb: 1,
+            textTransform: 'none',
+            borderColor: '#e0e0e0',
+            color: '#666',
+            '&:hover': {
+              borderColor: '#1976d2',
+              color: '#1976d2'
+            }
+          }}
+        >
+          My Profile
+        </Button>
+
+        <Button
+          fullWidth
+          variant="outlined"
+          startIcon={<Logout />}
+          onClick={() => {
+            handleLogout();
+            handleMobileMenuClose();
+          }}
+          sx={{
+            textTransform: 'none',
+            borderColor: '#e0e0e0',
+            color: '#666',
+            '&:hover': {
+              borderColor: '#d32f2f',
+              color: '#d32f2f'
+            }
+          }}
+        >
+          Logout
+        </Button>
+      </Box>
+    </Drawer>
 </AppBar>
   );
 };
