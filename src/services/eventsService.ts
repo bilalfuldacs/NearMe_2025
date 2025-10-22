@@ -2,7 +2,7 @@
 // Handles all event-related API calls
 
 import apiClient, { apiClientNoAuth } from './apiClient';
-import { Event } from '../store/eventsSlice';
+import { Event, HostReviews } from '../store/eventsSlice';
 
 export interface CreateEventData {
   title: string;
@@ -77,7 +77,11 @@ const transformEvent = (event: any): Event => {
     is_upcoming: event.is_upcoming || false,
     is_past: event.is_past || false,
     username: event.organizer?.name || event.organizer_name || '',
-    email: event.organizer?.email || event.organizer_email || ''
+    email: event.organizer?.email || event.organizer_email || '',
+    // Host review fields
+    host_average_rating: event.host_average_rating,
+    host_total_reviews: event.host_total_reviews,
+    host_reviews: event.host_reviews
   };
 };
 
@@ -140,6 +144,7 @@ class EventsService {
       const eventsData = response.data.results || response.data;
       
       // Transform events to match Event interface
+      // Backend already provides host_average_rating and host_total_reviews
       return eventsData.map(transformEvent);
     } catch (error: any) {
       console.error('EventsService: Failed to fetch events:', error);
@@ -156,11 +161,24 @@ class EventsService {
       const response = await apiClient.get(`/events/${id}/`);
       
       // Handle different response structures
-      // Single event endpoint returns: { success: true, event: {...} }
+      // Single event endpoint returns: { success: true, event: {...}, host_reviews: {...} }
       // List endpoint returns: { results: [...] } or direct event object
       const eventData = response.data.event || response.data;
+      const hostReviewsData = response.data.host_reviews;
       
       const transformed = transformEvent(eventData);
+      
+      // Add host reviews data for single event (complete host reviews)
+      if (hostReviewsData) {
+        return {
+          ...transformed,
+          host_average_rating: hostReviewsData.statistics.average_rating,
+          host_total_reviews: hostReviewsData.statistics.total_reviews,
+          host_reviews: hostReviewsData
+        };
+      }
+      
+      // Return transformed event (backend already provides host_average_rating and host_total_reviews)
       return transformed;
     } catch (error: any) {
       console.error('EventsService: Failed to fetch event:', error);

@@ -1,5 +1,41 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+// Define the Review interface
+export interface Review {
+  id: number;
+  event_id: number;
+  user_id: number;
+  user_name: string;
+  user_avatar?: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Define the Host Reviews interface
+export interface HostReviews {
+  statistics: {
+    average_rating: number;
+    total_reviews: number;
+    rating_distribution: {
+      "5": number;
+      "4": number;
+      "3": number;
+      "2": number;
+      "1": number;
+    };
+  };
+  reviews: Array<{
+    id: number;
+    event_title: string;
+    reviewer_name: string;
+    rating: number;
+    comment: string;
+    created_at: string;
+  }>;
+}
+
 // Define the Event interface based on actual API response
 export interface Event {
   id: number;
@@ -40,6 +76,15 @@ export interface Event {
   full_address: string;
   is_upcoming: boolean;
   is_past: boolean;
+  // Review related fields
+  reviews?: Review[];
+  average_rating?: number;
+  total_reviews?: number;
+  host_rating?: number;
+  // Host reviews from all their events
+  host_average_rating?: number;
+  host_total_reviews?: number;
+  host_reviews?: HostReviews;
 }
 
 // Define the state interface

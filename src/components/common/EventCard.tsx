@@ -8,6 +8,8 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import Box from '@mui/material/Box';
+import Rating from '@mui/material/Rating';
+import Stack from '@mui/material/Stack';
 import { Event } from '../../store/eventsSlice';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -65,11 +67,36 @@ export default function MediaCard({Image, event}: EventCardProps) {
             />
           )}
         </Box>
-        <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6 }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.6, mb: 1 }}>
           Hosted by {event?.organizer_name || "Organizer"}<br/>
           {event?.max_attendees ? `${event.max_attendees} attendees max` : "Limited spots"}, {event?.city || "Location"}<br/>
           {event?.start_date ? new Date(event.start_date).toLocaleDateString() : "Date TBD"}
         </Typography>
+        
+        {/* Host Rating - Show overall host rating from all their events */}
+        {(event?.host_average_rating && event.host_average_rating > 0) && (
+          <Box sx={{ mb: 1 }}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Rating
+                value={event.host_average_rating}
+                readOnly
+                size="small"
+                sx={{
+                  '& .MuiRating-iconFilled': {
+                    color: '#fbbf24',
+                  },
+                  '& .MuiRating-iconEmpty': {
+                    color: '#e5e7eb',
+                  }
+                }}
+              />
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                {event.host_average_rating.toFixed(1)} star{event.host_average_rating !== 1 ? 's' : ''} host
+                {event.host_total_reviews && ` (${event.host_total_reviews} reviews)`}
+              </Typography>
+            </Stack>
+          </Box>
+        )}
       </CardContent>
       <CardActions sx={{ p: 2, pt: 0 }}>
         <Button 

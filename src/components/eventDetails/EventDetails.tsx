@@ -21,6 +21,8 @@ import {
 import { Event } from '../../store/eventsSlice';
 import { AuthContext } from '../../auth/authContext';
 import { formatDate, formatTime } from '../../utils';
+import ReviewsSection from '../common/ReviewsSection';
+import HostReviewsSection from '../common/HostReviewsSection';
 
 interface EventDetailsProps {
   event: Event;
@@ -199,6 +201,12 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
           </Stack>
         </Grid>
       </Grid>
+
+      {/* Event Reviews Section */}
+      <ReviewsSection event={event} />
+      
+      {/* Host Reviews Section */}
+      <HostReviewsSection event={event} />
     </Box>
   );
 };
