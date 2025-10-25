@@ -336,3 +336,62 @@ export const getEventReviews = (eventId: number): Review[] => {
 export const getHostRating = (eventId: number): number => {
   return hostRatings[eventId] || 0;
 };
+
+/**
+ * Review utility functions
+ */
+
+export interface ReviewData {
+  rating: number;
+  comment: string;
+}
+
+/**
+ * Validates review data before submission
+ */
+export const validateReview = (rating: number, comment: string): { isValid: boolean; error?: string } => {
+  if (!rating || rating < 1 || rating > 5) {
+    return {
+      isValid: false,
+      error: `Please provide a valid rating between 1 and 5 stars. Current: ${rating}`
+    };
+  }
+
+  if (!comment || !comment.trim()) {
+    return {
+      isValid: false,
+      error: 'Please provide a comment.'
+    };
+  }
+
+  return { isValid: true };
+};
+
+/**
+ * Formats rating text based on numeric value
+ */
+export const getRatingText = (rating: number): string => {
+  if (rating >= 4.5) return 'Excellent';
+  if (rating >= 4.0) return 'Very Good';
+  if (rating >= 3.5) return 'Good';
+  if (rating >= 3.0) return 'Average';
+  if (rating >= 2.0) return 'Below Average';
+  return 'Poor';
+};
+
+/**
+ * Gets color for rating chip
+ */
+export const getRatingColor = (rating: number): 'success' | 'warning' | 'error' => {
+  if (rating >= 4.0) return 'success';
+  if (rating >= 3.0) return 'warning';
+  return 'error';
+};
+
+/**
+ * Checks if a review belongs to the current user
+ */
+export const isOwnReview = (review: any, currentUserId: number | undefined): boolean => {
+  if (!currentUserId || !review.reviewer) return false;
+  return currentUserId === review.reviewer || currentUserId.toString() === review.reviewer.toString();
+};

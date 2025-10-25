@@ -6,6 +6,11 @@ export interface CreateReviewData {
   comment: string;
 }
 
+export interface UpdateReviewData {
+  rating: number;
+  comment: string;
+}
+
 export interface Review {
   id: number;
   event_id: number;
@@ -59,14 +64,33 @@ class ReviewsService {
   }
 
   /**
+   * Get a single review by ID
+   */
+  async getReviewById(reviewId: number): Promise<Review> {
+    try {
+      console.log('ReviewsService: Fetching review with ID:', reviewId);
+      const response = await apiClient.get(`/reviews/${reviewId}/`);
+      console.log('ReviewsService: Review fetched:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('ReviewsService: Failed to fetch review:', error);
+      console.error('ReviewsService: Error response:', error.response);
+      throw new Error(error.response?.data?.message || 'Failed to fetch review');
+    }
+  }
+
+  /**
    * Update a review
    */
-  async updateReview(reviewId: number, reviewData: Partial<CreateReviewData>): Promise<Review> {
+  async updateReview(reviewId: number, reviewData: UpdateReviewData): Promise<Review> {
     try {
+      console.log('ReviewsService: Updating review', reviewId, 'with data:', reviewData);
       const response = await apiClient.put(`/reviews/${reviewId}/`, reviewData);
+      console.log('ReviewsService: Update response:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('ReviewsService: Failed to update review:', error);
+      console.error('ReviewsService: Error response:', error.response);
       throw new Error(error.response?.data?.message || 'Failed to update review');
     }
   }
@@ -76,7 +100,7 @@ class ReviewsService {
    */
   async deleteReview(reviewId: number): Promise<void> {
     try {
-      await apiClient.delete(`/reviews/${reviewId}/`);
+      await apiClient.delete(`/reviews/${reviewId}/delete/`);
     } catch (error: any) {
       console.error('ReviewsService: Failed to delete review:', error);
       throw new Error(error.response?.data?.message || 'Failed to delete review');

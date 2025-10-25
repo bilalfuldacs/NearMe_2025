@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -7,20 +7,23 @@ import {
   Divider,
   Stack,
   Chip,
-  Collapse,
   Card,
   CardContent,
   Avatar,
   Grid
 } from '@mui/material';
 import {
-  Star as StarIcon,
   ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  Person as PersonIcon
+  ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
-import { Event, HostReviews } from '../../store/eventsSlice';
-import { formatDate } from '../../utils';
+import { Event } from '../../store/eventsSlice';
+import { formatDate } from '../../utils/dateUtils';
+import { getRatingText, getRatingColor, isOwnReview } from '../../utils/reviewUtils';
+import { AuthContext } from '../../auth/authContext';
+import { useReviewManagement } from '../../hooks/useReviewManagement';
+import EditReviewDialog from './EditReviewDialog';
+import DeleteReviewDialog from './DeleteReviewDialog';
+import ReviewActionsMenu, { ReviewActionsButton } from './ReviewActionsMenu';
 
 interface HostReviewsSectionProps {
   event: Event;
@@ -28,31 +31,61 @@ interface HostReviewsSectionProps {
 
 const HostReviewsSection: React.FC<HostReviewsSectionProps> = ({ event }) => {
   const [showAllHostReviews, setShowAllHostReviews] = useState(false);
+  
+  const authContext = useContext(AuthContext);
+  const user = authContext?.user;
+
+  const reviewManagement = useReviewManagement();
+  const {
+    anchorEl,
+    selectedReviewId,
+    editDialogOpen,
+    deleteDialogOpen,
+    editRating,
+    editComment,
+    loading,
+    error,
+    openMenu,
+    closeMenu,
+    openEditDialog,
+    closeEditDialog,
+    openDeleteDialog,
+    closeDeleteDialog,
+    handleEditSubmit,
+    handleDeleteConfirm,
+    setEditRating,
+    setEditComment,
+    setError
+  } = reviewManagement;
 
   const hostReviews = event.host_reviews;
   const hostAverageRating = event.host_average_rating || 0;
   const hostTotalReviews = event.host_total_reviews || 0;
+
+  const displayedReviews = useMemo(() => {
+    return showAllHostReviews ? hostReviews?.reviews || [] : (hostReviews?.reviews || []).slice(0, 3);
+  }, [showAllHostReviews, hostReviews?.reviews]);
 
   // Only show host reviews section if we have full host reviews data (from single event view)
   if (!hostReviews || hostTotalReviews === 0) {
     return null;
   }
 
-  const displayedReviews = showAllHostReviews ? hostReviews.reviews : hostReviews.reviews.slice(0, 3);
-
-  const getRatingText = (rating: number) => {
-    if (rating >= 4.5) return 'Excellent';
-    if (rating >= 4.0) return 'Very Good';
-    if (rating >= 3.5) return 'Good';
-    if (rating >= 3.0) return 'Average';
-    if (rating >= 2.0) return 'Below Average';
-    return 'Poor';
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, reviewId: number) => {
+    openMenu(event, reviewId);
   };
 
-  const getRatingColor = (rating: number) => {
-    if (rating >= 4.0) return 'success';
-    if (rating >= 3.0) return 'warning';
-    return 'error';
+  const handleEditClick = () => {
+    if (!selectedReviewId) return;
+    
+    const review = hostReviews?.reviews?.find((r: any) => r.id === selectedReviewId);
+    if (review) {
+      openEditDialog(review);
+    }
+  };
+
+  const handleDeleteClick = () => {
+    openDeleteDialog();
   };
 
   return (
@@ -142,7 +175,7 @@ const HostReviewsSection: React.FC<HostReviewsSectionProps> = ({ event }) => {
           Recent Reviews
         </Typography>
         
-        {displayedReviews.map((review) => (
+        {displayedReviews.map((review: any) => (
           <Card 
             key={review.id}
             sx={{ 
@@ -172,16 +205,21 @@ const HostReviewsSection: React.FC<HostReviewsSectionProps> = ({ event }) => {
                     <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
                       {review.reviewer_name}
                     </Typography>
-                    <Chip
-                      label={formatDate(review.created_at)}
-                      size="small"
-                      sx={{
-                        fontSize: '0.75rem',
-                        height: 24,
-                        bgcolor: 'grey.100',
-                        color: 'text.secondary'
-                      }}
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Chip
+                        label={formatDate(review.created_at)}
+                        size="small"
+                        sx={{
+                          fontSize: '0.75rem',
+                          height: 24,
+                          bgcolor: 'grey.100',
+                          color: 'text.secondary'
+                        }}
+                      />
+                      {isOwnReview(review, user?.id) && (
+                        <ReviewActionsButton onClick={(e) => handleMenuOpen(e, review.id)} />
+                      )}
+                    </Box>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                     From: {review.event_title}
@@ -234,6 +272,37 @@ const HostReviewsSection: React.FC<HostReviewsSectionProps> = ({ event }) => {
           </Box>
         )}
       </Box>
+
+      {/* Review Actions Menu */}
+      <ReviewActionsMenu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={closeMenu}
+        onEdit={handleEditClick}
+        onDelete={handleDeleteClick}
+      />
+
+      {/* Edit Review Dialog */}
+      <EditReviewDialog
+        open={editDialogOpen}
+        rating={editRating}
+        comment={editComment}
+        loading={loading}
+        error={error}
+        onClose={closeEditDialog}
+        onSave={handleEditSubmit}
+        onRatingChange={setEditRating}
+        onCommentChange={setEditComment}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteReviewDialog
+        open={deleteDialogOpen}
+        loading={loading}
+        error={error}
+        onClose={closeDeleteDialog}
+        onConfirm={handleDeleteConfirm}
+      />
     </Box>
   );
 };

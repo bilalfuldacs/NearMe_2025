@@ -17,7 +17,6 @@ import {
 } from '@mui/icons-material';
 import { Event, Review } from '../../store/eventsSlice';
 import { AuthContext } from '../../auth/authContext';
-import ReviewCard from './ReviewCard';
 import ReviewForm from './ReviewForm';
 import { canUserReviewEvent, getReviewEligibilityMessage } from '../../utils/reviewEligibility';
 
@@ -171,9 +170,9 @@ const ReviewsSection: React.FC<ReviewsSectionProps> = ({ event }) => {
       {/* Reviews List */}
       {reviews.length > 0 ? (
         <Box>
-          {displayedReviews.map((review) => (
+          {/* {displayedReviews.map((review) => (
             <ReviewCard key={review.id} review={review} />
-          ))}
+          ))} */}
           
           {reviews.length > 3 && (
             <Box sx={{ textAlign: 'center', mt: 2 }}>
